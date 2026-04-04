@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion'
 import RevealSection from './ui/RevealSection'
 import { GALLERY_ITEMS } from '@/lib/constants'
+import Image from 'next/image'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
@@ -61,11 +62,12 @@ export default function Gallery() {
                 }}
               >
                 {/* Placeholder gradient – HIER ECHTES BILD EINSETZEN */}
-                <div
-                  className={`bg-gradient-to-br ${item.gradient} w-full ${
-                    tall ? 'aspect-[3/5] sm:aspect-auto sm:h-full' : 'aspect-[4/3]'
-                  } min-h-[200px] transition-transform duration-700 group-hover:scale-[1.03]`}
-                />
+                <Image
+  src="/images/gallery-lack.jpg"
+  alt="Lackierung vorher/nachher"
+  fill
+  className="object-cover"
+/>
 
                 {/* Label overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-carbon-950/80 via-transparent to-transparent flex items-end p-4 sm:p-5">
