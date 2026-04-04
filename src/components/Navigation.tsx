@@ -28,17 +28,14 @@ export default function Navigation() {
   }, [menuOpen]);
 
   return (
-    <motion.nav
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, delay: 0.2 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 pt-[env(safe-area-inset-top)] ${
         scrolled
           ? "bg-black/80 backdrop-blur-xl border-b border-white/[0.04] shadow-2xl shadow-black/40"
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16 sm:h-18">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
         <a href="#" className="flex flex-col leading-tight group">
           <span className="text-lg font-display font-extrabold tracking-tight text-white group-hover:text-accent transition-colors duration-300">
             RENGINAL
@@ -94,7 +91,7 @@ export default function Navigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden fixed inset-0 top-16 bg-black/98 backdrop-blur-2xl z-40"
+            className="md:hidden fixed inset-0 top-14 bg-black/98 backdrop-blur-2xl z-40"
           >
             <div className="flex flex-col items-center justify-center h-full gap-6 pb-20">
               {NAV_LINKS.map((link, i) => (
@@ -125,6 +122,6 @@ export default function Navigation() {
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.nav>
+    </nav>
   );
 }

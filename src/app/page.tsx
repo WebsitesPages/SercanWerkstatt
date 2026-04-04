@@ -1,6 +1,5 @@
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
-import QuickActions from "@/components/QuickActions";
 import Services from "@/components/Services";
 import WhyUs from "@/components/WhyUs";
 import Process from "@/components/Process";
@@ -16,7 +15,6 @@ export default function Home() {
       <Navigation />
       <main>
         <Hero />
-        <QuickActions />
         <Services />
         <WhyUs />
         <Process />
