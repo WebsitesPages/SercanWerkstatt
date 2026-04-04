@@ -63,7 +63,7 @@ export default function Gallery() {
               >
                 {/* Placeholder gradient – HIER ECHTES BILD EINSETZEN */}
                 <Image
-  src="/images/gallery-lack.jpg"
+  src="/images/gallery-1.jpg"
   alt="Lackierung vorher/nachher"
   fill
   className="object-cover"
