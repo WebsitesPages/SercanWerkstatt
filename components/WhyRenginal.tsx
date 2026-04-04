@@ -35,7 +35,7 @@ export default function WhyRenginal() {
         {/* Section header */}
         <RevealSection>
           <p className="font-body text-xs sm:text-sm text-accent-red uppercase tracking-[0.25em] mb-3 font-semibold">
-            Warum Renginal
+            Warum Inal
           </p>
         </RevealSection>
         <RevealSection delay={0.1} className="mb-14 sm:mb-16">

@@ -56,7 +56,7 @@ export default function Navigation() {
             onClick={() => navigate('#hero')}
             className="font-display text-[1.5rem] text-carbon-50 uppercase tracking-[0.12em]"
           >
-            Renginal
+            Inal
           </button>
 
           {/* Desktop links */}

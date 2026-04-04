@@ -1,5 +1,5 @@
 export const COMPANY = {
-  name: 'Renginal',
+  name: 'Inal',
   fullName: 'Inal Unfallinstandsetzung + Fahrzeuglackierung',
   address: 'Tagetesstraße 7',
   zip: '80935',
@@ -42,6 +42,11 @@ export const SERVICES = [
     title: 'Wartung & Reparatur',
     description:
       'Zuverlässige Wartung und Reparatur aller Marken. Damit Ihr Fahrzeug in bestem Zustand bleibt.',
+  },
+  {
+    title: 'Fahrzeugaufbereitung',
+    description:
+      'Professionelle Innen- und Außenaufbereitung für einen gepflegten Auftritt — von der Politur bis zur Komplettaufbereitung.',
   },
 ] as const
 

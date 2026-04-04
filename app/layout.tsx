@@ -18,18 +18,18 @@ const barlow = Barlow({
 
 /* ── Metadata & SEO ────────────────────────────────── */
 export const metadata: Metadata = {
-  title: 'Renginal — Unfallinstandsetzung & Fahrzeuglackierung in München',
+  title: 'Inal — Unfallinstandsetzung & Fahrzeuglackierung in München',
   description:
     'Ihr Experte für Unfallinstandsetzung, Fahrzeuglackierung, Felgenservice und Achsvermessung in München. Professionelle Karosseriearbeiten mit höchstem Qualitätsanspruch. Tagetesstraße 7, 80935 München.',
   keywords:
-    'Kfz-Werkstatt München, Unfallinstandsetzung München, Fahrzeuglackierung, Karosserie, Lackierung, Felgenservice, Gutachten, Achsvermessung, Renginal',
+    'Kfz-Werkstatt München, Unfallinstandsetzung München, Fahrzeuglackierung, Karosserie, Lackierung, Felgenservice, Gutachten, Achsvermessung, Inal',
   openGraph: {
-    title: 'Renginal — Unfallinstandsetzung & Fahrzeuglackierung München',
+    title: 'Inal — Unfallinstandsetzung & Fahrzeuglackierung München',
     description:
       'Professionelle Karosseriearbeiten und Lackierungen in München. Qualität, Präzision und persönlicher Service.',
     type: 'website',
     locale: 'de_DE',
-    siteName: 'Renginal',
+    siteName: 'Inal',
   },
   robots: 'index, follow',
   other: {
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'AutoRepair',
-  name: 'Renginal — Inal Unfallinstandsetzung + Fahrzeuglackierung',
+  name: 'Inal — Inal Unfallinstandsetzung + Fahrzeuglackierung',
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Tagetesstraße 7',

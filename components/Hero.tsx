@@ -78,7 +78,7 @@ export default function Hero() {
           transition={{ duration: 1.3, delay: 0.4, ease }}
         >
           <h1 className="font-display text-[3.5rem] sm:text-7xl md:text-8xl lg:text-[7rem] text-carbon-50 uppercase tracking-[0.06em] leading-[0.95]">
-            Renginal
+            Inal
           </h1>
         </motion.div>
 
