@@ -1,166 +1,166 @@
 'use client'
 import { useRef } from 'react'
 import { motion, useScroll, useTransform } from 'framer-motion'
-import SplitText from './ui/SplitText'
 import MagneticButton from './ui/MagneticButton'
 import { COMPANY } from '@/lib/constants'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
 export default function Hero() {
-  const ref = useRef(null)
+  const wrapperRef = useRef(null)
+
+  /* Scroll progress across the tall wrapper (250vh) */
   const { scrollYProgress } = useScroll({
-    target: ref,
+    target: wrapperRef,
     offset: ['start start', 'end start'],
   })
 
-  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '25%'])
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.45], [1, 0])
-  const contentScale = useTransform(scrollYProgress, [0, 0.45], [1, 0.96])
+  /* ── INAL zoom effect ────────────────────────────── */
+  /* Stays normal for the first ~20%, then scales up massively */
+  const inalScale = useTransform(scrollYProgress, [0, 0.15, 0.7], [1, 1, 18])
+  const inalOpacity = useTransform(scrollYProgress, [0, 0.15, 0.55, 0.7], [1, 1, 0.6, 0])
+
+  /* Subtitle, buttons etc. fade out earlier */
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.1, 0.35], [1, 1, 0])
+  const contentY = useTransform(scrollYProgress, [0, 0.1, 0.35], [0, 0, -30])
+
+  /* Scroll indicator fades immediately */
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.05, 0.12], [1, 1, 0])
+
+  /* Background parallax */
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
 
   return (
-    <section
-      ref={ref}
-      id="hero"
-      className="relative h-[100svh] min-h-[600px] flex items-center justify-center overflow-hidden"
-    >
-      {/* ── Background layers ──────────────────────── */}
-      <motion.div className="absolute inset-0 gpu" style={{ y: bgY }}>
-        {/* Base gradient */}
-        <div className="absolute inset-0 bg-gradient-to-b from-carbon-950 via-carbon-900 to-carbon-950" />
+    <section ref={wrapperRef} id="hero" className="relative" style={{ height: '250vh' }}>
+      {/* ── Sticky viewport ────────────────────────── */}
+      <div className="sticky top-0 h-[100svh] min-h-[600px] flex items-center justify-center overflow-hidden">
+        {/* ── Background layers ──────────────────── */}
+        <motion.div className="absolute inset-0 gpu" style={{ y: bgY }}>
+          <div className="absolute inset-0 bg-gradient-to-b from-carbon-950 via-carbon-900 to-carbon-950" />
 
-        {/* Red radial glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(201,42,42,0.07)_0%,transparent_70%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,rgba(201,42,42,0.07)_0%,transparent_70%)]" />
 
-        {/* Animated diagonal hatching */}
-        <motion.div
-          className="absolute inset-0 opacity-[0.025]"
-          animate={{ backgroundPosition: ['0px 0px', '80px 80px'] }}
-          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-          style={{
-            backgroundImage:
-              'repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(255,255,255,0.15) 30px,rgba(255,255,255,0.15) 31px)',
-            backgroundSize: '56px 56px',
-          }}
-        />
-
-        {/* Initial light sweep (plays once) */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          initial={{ x: '-120%' }}
-          animate={{ x: '220%' }}
-          transition={{ duration: 2.2, delay: 0.6, ease }}
-        >
-          <div className="h-full w-1/4 bg-gradient-to-r from-transparent via-white/[.08] to-transparent skew-x-[-12deg]" />
-        </motion.div>
-
-        {/* Slow ambient light pulse */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ opacity: [0, 0.04, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            background:
-              'radial-gradient(ellipse 50% 40% at 50% 45%, rgba(201,42,42,0.12) 0%, transparent 100%)',
-          }}
-        />
-      </motion.div>
-
-      {/* ── Content ────────────────────────────────── */}
-      <motion.div
-        className="relative z-10 text-center px-5 max-w-4xl mx-auto"
-        style={{ opacity: contentOpacity, scale: contentScale }}
-      >
-        {/* Brand name – clip-path reveal */}
-        <motion.div
-          initial={{ clipPath: 'inset(0 100% 0 0)' }}
-          animate={{ clipPath: 'inset(0 0% 0 0)' }}
-          transition={{ duration: 1.3, delay: 0.4, ease }}
-        >
-          <h1 className="font-display text-[3.5rem] sm:text-7xl md:text-8xl lg:text-[7rem] text-carbon-50 uppercase tracking-[0.06em] leading-[0.95]">
-            Inal
-          </h1>
-        </motion.div>
-
-        {/* Accent line */}
-        <motion.div
-          className="h-[2px] mx-auto mt-4 mb-5 bg-gradient-to-r from-transparent via-accent-red to-transparent origin-center"
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 0.9, delay: 1.1, ease }}
-          style={{ maxWidth: '55%' }}
-        />
-
-        {/* Tagline – split-text reveal */}
-        <div className="overflow-hidden mb-3">
-          <SplitText
-            text="Unfallinstandsetzung + Fahrzeuglackierung"
-            className="font-display text-base sm:text-lg md:text-xl text-carbon-300 uppercase tracking-[0.18em] leading-relaxed"
-            delay={1.3}
-            stagger={0.018}
+          {/* Subtle diagonal hatching */}
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(45deg,transparent,transparent 30px,rgba(255,255,255,0.15) 30px,rgba(255,255,255,0.15) 31px)',
+              backgroundSize: '56px 56px',
+            }}
           />
-        </div>
 
-        {/* Subtitle */}
-        <motion.p
-          className="font-body text-sm sm:text-base text-carbon-400 mb-10 max-w-lg mx-auto leading-relaxed"
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8, ease }}
-        >
-          Ihr Experte für Karosserie &amp; Lack in München — Präzision,
-          Qualität und persönlicher Anspruch.
-        </motion.p>
-
-        {/* CTA buttons */}
-        <motion.div
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 2.1, ease }}
-        >
-          <MagneticButton
-            href={`tel:${COMPANY.phone}`}
-            className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 bg-accent-red text-white font-body font-semibold text-base tracking-wide hover:bg-accent-red-light transition-colors rounded-[3px] active:scale-[0.97] transition-transform"
-          >
-            <PhoneIcon />
-            Jetzt anrufen
-          </MagneticButton>
-
-          <MagneticButton
-            href={COMPANY.mapsUrl}
-            className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 border border-carbon-600 text-carbon-200 font-body font-semibold text-base tracking-wide hover:border-carbon-400 hover:text-white transition-all rounded-[3px] active:scale-[0.97]"
-          >
-            <MapIcon />
-            Route planen
-          </MagneticButton>
+          {/* Slow ambient light pulse */}
+          <motion.div
+            className="absolute inset-0"
+            animate={{ opacity: [0, 0.04, 0] }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+            style={{
+              background:
+                'radial-gradient(ellipse 50% 40% at 50% 45%, rgba(201,42,42,0.12) 0%, transparent 100%)',
+            }}
+          />
         </motion.div>
-      </motion.div>
 
-      {/* ── Scroll indicator ───────────────────────── */}
-      <motion.div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 2.8, duration: 0.6 }}
-      >
-        <motion.span
-          className="text-carbon-500 text-[0.65rem] font-body uppercase tracking-[0.25em]"
-          animate={{ opacity: [0.4, 0.8, 0.4] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          Scrollen
-        </motion.span>
+        {/* ── INAL – zoom on scroll ───────────────── */}
         <motion.div
-          className="w-[1px] h-7 bg-gradient-to-b from-carbon-500 to-transparent"
-          animate={{ scaleY: [0.6, 1, 0.6] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ originY: 0 }}
-        />
-      </motion.div>
+          className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
+          style={{ scale: inalScale, opacity: inalOpacity }}
+        >
+          <motion.h1
+            className="font-display text-[4rem] sm:text-7xl md:text-8xl lg:text-[7.5rem] text-carbon-50 uppercase tracking-[0.08em] leading-none select-none"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9, delay: 0.2, ease }}
+          >
+            Inal
+          </motion.h1>
+        </motion.div>
 
-      {/* ── Bottom fade-out ────────────────────────── */}
-      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-carbon-950 to-transparent pointer-events-none" />
+        {/* ── Rest of content (fades out earlier) ── */}
+        <motion.div
+          className="relative z-10 text-center px-5 max-w-4xl mx-auto mt-32 sm:mt-36"
+          style={{ opacity: contentOpacity, y: contentY }}
+        >
+          {/* Accent line */}
+          <motion.div
+            className="h-[2px] mx-auto mb-5 bg-gradient-to-r from-transparent via-accent-red to-transparent origin-center"
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6, ease }}
+            style={{ maxWidth: '50%' }}
+          />
+
+          {/* Tagline */}
+          <motion.p
+            className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase tracking-[0.18em] leading-relaxed mb-3"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.7, ease }}
+          >
+            Unfallinstandsetzung + Fahrzeuglackierung
+          </motion.p>
+
+          {/* Subtitle */}
+          <motion.p
+            className="font-body text-sm sm:text-base text-carbon-400 mb-10 max-w-lg mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.9, ease }}
+          >
+            Ihr Experte für Karosserie &amp; Lack in München — Präzision,
+            Qualität und persönlicher Anspruch.
+          </motion.p>
+
+          {/* CTA buttons */}
+          <motion.div
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.1, ease }}
+          >
+            <MagneticButton
+              href={`tel:${COMPANY.phone}`}
+              className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 bg-accent-red text-white font-body font-semibold text-base tracking-wide hover:bg-accent-red-light transition-colors rounded-[3px] active:scale-[0.97]"
+            >
+              <PhoneIcon />
+              Jetzt anrufen
+            </MagneticButton>
+
+            <MagneticButton
+              href={COMPANY.mapsUrl}
+              className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 border border-carbon-600 text-carbon-200 font-body font-semibold text-base tracking-wide hover:border-carbon-400 hover:text-white transition-all rounded-[3px] active:scale-[0.97]"
+            >
+              <MapIcon />
+              Route planen
+            </MagneticButton>
+          </motion.div>
+        </motion.div>
+
+        {/* ── Scroll indicator ─────────────────────── */}
+        <motion.div
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10"
+          style={{ opacity: scrollIndicatorOpacity }}
+        >
+          <motion.span
+            className="text-carbon-500 text-[0.65rem] font-body uppercase tracking-[0.25em]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.6 }}
+            transition={{ delay: 1.4, duration: 0.5 }}
+          >
+            Scrollen
+          </motion.span>
+          <motion.div
+            className="w-[1px] h-7 bg-gradient-to-b from-carbon-500 to-transparent"
+            animate={{ scaleY: [0.6, 1, 0.6] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ originY: 0 }}
+          />
+        </motion.div>
+
+        {/* ── Bottom fade ──────────────────────────── */}
+        <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-carbon-950 to-transparent pointer-events-none" />
+      </div>
     </section>
   )
 }
