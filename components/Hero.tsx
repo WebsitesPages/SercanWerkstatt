@@ -62,80 +62,83 @@ export default function Hero() {
           />
         </motion.div>
 
-        {/* ── INAL – zoom on scroll ───────────────── */}
-        <motion.div
-          className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none"
-          style={{ scale: inalScale, opacity: inalOpacity }}
-        >
-          <motion.h1
-            className="font-display text-[4rem] sm:text-7xl md:text-8xl lg:text-[7.5rem] text-carbon-50 uppercase tracking-[0.08em] leading-none select-none"
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.9, delay: 0.2, ease }}
-          >
-            Inal
-          </motion.h1>
-        </motion.div>
-
-        {/* ── Rest of content (fades out earlier) ── */}
-        <motion.div
-          className="relative z-10 text-center px-5 max-w-4xl mx-auto mt-32 sm:mt-36"
-          style={{ opacity: contentOpacity, y: contentY }}
-        >
-          {/* Accent line */}
+        {/* ── All content in one vertical flow ──── */}
+        <div className="relative z-10 text-center px-5 max-w-4xl mx-auto flex flex-col items-center">
+          {/* INAL – zooms on scroll */}
           <motion.div
-            className="h-[2px] mx-auto mb-5 bg-gradient-to-r from-transparent via-accent-red to-transparent origin-center"
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.6, ease }}
-            style={{ maxWidth: '50%' }}
-          />
-
-          {/* Tagline */}
-          <motion.p
-            className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase tracking-[0.18em] leading-relaxed mb-3"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.7, ease }}
+            className="gpu"
+            style={{ scale: inalScale, opacity: inalOpacity }}
           >
-            Unfallinstandsetzung + Fahrzeuglackierung
-          </motion.p>
-
-          {/* Subtitle */}
-          <motion.p
-            className="font-body text-sm sm:text-base text-carbon-400 mb-10 max-w-lg mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.9, ease }}
-          >
-            Ihr Experte für Karosserie &amp; Lack in München — Präzision,
-            Qualität und persönlicher Anspruch.
-          </motion.p>
-
-          {/* CTA buttons */}
-          <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 1.1, ease }}
-          >
-            <MagneticButton
-              href={`tel:${COMPANY.phone}`}
-              className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 bg-accent-red text-white font-body font-semibold text-base tracking-wide hover:bg-accent-red-light transition-colors rounded-[3px] active:scale-[0.97]"
+            <motion.h1
+              className="font-display text-[4rem] sm:text-7xl md:text-8xl lg:text-[7.5rem] text-carbon-50 uppercase tracking-[0.08em] leading-none select-none"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.9, delay: 0.2, ease }}
             >
-              <PhoneIcon />
-              Jetzt anrufen
-            </MagneticButton>
-
-            <MagneticButton
-              href={COMPANY.mapsUrl}
-              className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 border border-carbon-600 text-carbon-200 font-body font-semibold text-base tracking-wide hover:border-carbon-400 hover:text-white transition-all rounded-[3px] active:scale-[0.97]"
-            >
-              <MapIcon />
-              Route planen
-            </MagneticButton>
+              Inal
+            </motion.h1>
           </motion.div>
-        </motion.div>
+
+          {/* Rest of content – fades out earlier on scroll */}
+          <motion.div
+            className="flex flex-col items-center mt-6"
+            style={{ opacity: contentOpacity, y: contentY }}
+          >
+            {/* Accent line */}
+            <motion.div
+              className="h-[2px] w-full mb-5 bg-gradient-to-r from-transparent via-accent-red to-transparent origin-center"
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.6, ease }}
+              style={{ maxWidth: '50%' }}
+            />
+
+            {/* Tagline */}
+            <motion.p
+              className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase tracking-[0.18em] leading-relaxed mb-3"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.7, ease }}
+            >
+              Unfallinstandsetzung + Fahrzeuglackierung
+            </motion.p>
+
+            {/* Subtitle */}
+            <motion.p
+              className="font-body text-sm sm:text-base text-carbon-400 mb-10 max-w-lg mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.9, ease }}
+            >
+              Ihr Experte für Karosserie &amp; Lack in München — Präzision,
+              Qualität und persönlicher Anspruch.
+            </motion.p>
+
+            {/* CTA buttons */}
+            <motion.div
+              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 1.1, ease }}
+            >
+              <MagneticButton
+                href={`tel:${COMPANY.phone}`}
+                className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 bg-accent-red text-white font-body font-semibold text-base tracking-wide hover:bg-accent-red-light transition-colors rounded-[3px] active:scale-[0.97]"
+              >
+                <PhoneIcon />
+                Jetzt anrufen
+              </MagneticButton>
+
+              <MagneticButton
+                href={COMPANY.mapsUrl}
+                className="inline-flex items-center justify-center gap-3 w-full sm:w-auto px-8 py-4 border border-carbon-600 text-carbon-200 font-body font-semibold text-base tracking-wide hover:border-carbon-400 hover:text-white transition-all rounded-[3px] active:scale-[0.97]"
+              >
+                <MapIcon />
+                Route planen
+              </MagneticButton>
+            </motion.div>
+          </motion.div>
+        </div>
 
         {/* ── Scroll indicator ─────────────────────── */}
         <motion.div
