@@ -128,10 +128,8 @@ const items: GalleryItem[] = [
     type: 'beforeAfter',
     category: 'aufbereitung',
     caption: 'Außenaufbereitung — Politur & Versiegelung',
-    beforeGradient: 'from-stone-800 via-stone-700/50 to-stone-900',
-    afterGradient: 'from-carbon-600 via-carbon-500/80 to-carbon-700',
-    beforeText: 'Vorher-Bild: stumpfer Lack',
-    afterText: 'Nachher-Bild: polierter Lack',
+    beforeSrc: `${BASE}/images/Aufbereitung-vorher.jpg`,
+    afterSrc: `${BASE}/images/Aufbereitung-nachher.jpg`,
   },
   {
     type: 'beforeAfter',
