@@ -148,6 +148,14 @@ const items: GalleryItem[] = [
     gradient: '',
     text: '',
   },
+  {
+    type: 'single',
+    category: 'aufbereitung',
+    caption: 'Fahrzeugaufbereitung — Komplettansicht',
+    src: `${BASE}/images/Aufbereitung-3.jpg`,
+    gradient: '',
+    text: '',
+  },
 
   /* ── Achsvermessung ──────────────────────────── */
   {
