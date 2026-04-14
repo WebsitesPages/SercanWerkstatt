@@ -28,14 +28,18 @@ type CategoryId = (typeof categories)[number]['id']
  *   gradient durch <Image src="/images/..." alt="..." fill className="object-cover" /> ersetzen
  */
 
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '/SercanWerkstatt'
+
 interface BeforeAfterItem {
   type: 'beforeAfter'
   category: CategoryId
   caption: string
-  beforeGradient: string
-  afterGradient: string
-  beforeText: string
-  afterText: string
+  beforeGradient?: string
+  afterGradient?: string
+  beforeText?: string
+  afterText?: string
+  beforeSrc?: string
+  afterSrc?: string
 }
 
 interface SingleItem {
@@ -55,10 +59,8 @@ const items: GalleryItem[] = [
     type: 'beforeAfter',
     category: 'unfall',
     caption: 'Seitenteil — Unfallinstandsetzung komplett',
-    beforeGradient: 'from-stone-800 via-neutral-700/60 to-stone-900',
-    afterGradient: 'from-zinc-600 via-zinc-500/80 to-zinc-700',
-    beforeText: 'Vorher-Bild: beschädigtes Seitenteil',
-    afterText: 'Nachher-Bild: repariertes Seitenteil',
+    beforeSrc: `${BASE}/images/unfall-seite-vorher.jpg`,
+    afterSrc: `${BASE}/images/unfall-seite-nachher.jpg`,
   },
   {
     type: 'beforeAfter',
@@ -249,6 +251,8 @@ export default function Gallery() {
                       afterGradient={item.afterGradient}
                       beforeText={item.beforeText}
                       afterText={item.afterText}
+                      beforeSrc={item.beforeSrc}
+                      afterSrc={item.afterSrc}
                       caption={item.caption}
                     />
                   </div>

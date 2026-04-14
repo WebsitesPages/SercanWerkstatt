@@ -3,15 +3,17 @@ import { useRef, useState, useCallback } from 'react'
 import { motion, useInView } from 'framer-motion'
 
 interface BeforeAfterSliderProps {
-  beforeGradient: string
-  afterGradient: string
+  beforeGradient?: string
+  afterGradient?: string
   beforeLabel?: string
   afterLabel?: string
   caption?: string
   className?: string
-  /* Platzhalter-Texte die im Gradienten angezeigt werden */
   beforeText?: string
   afterText?: string
+  /* Echte Bildpfade (überschreiben Gradienten) */
+  beforeSrc?: string
+  afterSrc?: string
 }
 
 export default function BeforeAfterSlider({
@@ -23,6 +25,8 @@ export default function BeforeAfterSlider({
   className = '',
   beforeText,
   afterText,
+  beforeSrc,
+  afterSrc,
 }: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const inView = useInView(containerRef, { once: true, margin: '-10% 0px' })
@@ -71,12 +75,17 @@ export default function BeforeAfterSlider({
         onPointerCancel={onUp}
       >
         {/* ── Nachher (full, behind) ───────────────── */}
-        <div className={`absolute inset-0 bg-gradient-to-br ${afterGradient}`}>
-          {/* HIER ECHTES NACHHER-BILD EINSETZEN: <Image src="..." alt="..." fill className="object-cover" /> */}
-          {afterText && (
-            <span className="absolute inset-0 flex items-center justify-center font-body text-xs text-carbon-500/40 tracking-widest uppercase">
-              {afterText}
-            </span>
+        <div className="absolute inset-0">
+          {afterSrc ? (
+            <img src={afterSrc} alt={afterLabel} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${afterGradient}`}>
+              {afterText && (
+                <span className="absolute inset-0 flex items-center justify-center font-body text-xs text-carbon-500/40 tracking-widest uppercase">
+                  {afterText}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -85,14 +94,17 @@ export default function BeforeAfterSlider({
           className="absolute inset-0 z-[1]"
           style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
         >
-          <div className={`absolute inset-0 bg-gradient-to-br ${beforeGradient}`}>
-            {/* HIER ECHTES VORHER-BILD EINSETZEN */}
-            {beforeText && (
-              <span className="absolute inset-0 flex items-center justify-center font-body text-xs text-carbon-400/40 tracking-widest uppercase">
-                {beforeText}
-              </span>
-            )}
-          </div>
+          {beforeSrc ? (
+            <img src={beforeSrc} alt={beforeLabel} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          ) : (
+            <div className={`absolute inset-0 bg-gradient-to-br ${beforeGradient}`}>
+              {beforeText && (
+                <span className="absolute inset-0 flex items-center justify-center font-body text-xs text-carbon-400/40 tracking-widest uppercase">
+                  {beforeText}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Divider line ─────────────────────────── */}
