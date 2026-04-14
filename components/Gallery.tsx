@@ -67,10 +67,8 @@ const items: GalleryItem[] = [
     type: 'beforeAfter',
     category: 'unfall',
     caption: 'Stoßfänger vorne — Komplettinstandsetzung',
-    beforeGradient: 'from-neutral-800 via-stone-700/50 to-neutral-900',
-    afterGradient: 'from-zinc-600 via-zinc-500 to-zinc-600',
-    beforeText: 'Vorher-Bild: beschädigter Stoßfänger',
-    afterText: 'Nachher-Bild: instandgesetzter Stoßfänger',
+    beforeSrc: `${BASE}/images/unfall-vorher-2.jpg`,
+    afterSrc: `${BASE}/images/unfall-nachher-2.jpg`,
   },
   {
     type: 'single',
