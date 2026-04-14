@@ -46,9 +46,10 @@ interface SingleItem {
   type: 'single'
   category: CategoryId
   caption: string
-  gradient: string
-  text: string
+  gradient?: string
+  text?: string
   tall?: boolean
+  src?: string
 }
 
 type GalleryItem = BeforeAfterItem | SingleItem
@@ -132,13 +133,20 @@ const items: GalleryItem[] = [
     afterSrc: `${BASE}/images/Aufbereitung-nachher.jpg`,
   },
   {
-    type: 'beforeAfter',
+    type: 'single',
     category: 'aufbereitung',
-    caption: 'Innenraumaufbereitung — Komplett',
-    beforeGradient: 'from-neutral-800 via-neutral-700/40 to-neutral-900',
-    afterGradient: 'from-zinc-700 via-zinc-600/60 to-zinc-800',
-    beforeText: 'Vorher-Bild: verschmutzter Innenraum',
-    afterText: 'Nachher-Bild: aufbereiteter Innenraum',
+    caption: 'Fahrzeugaufbereitung — Ergebnis',
+    src: `${BASE}/images/Aufbereitung-1.jpg`,
+    gradient: '',
+    text: '',
+  },
+  {
+    type: 'single',
+    category: 'aufbereitung',
+    caption: 'Fahrzeugaufbereitung — Detail',
+    src: `${BASE}/images/Aufbereitung-2.jpg`,
+    gradient: '',
+    text: '',
   },
 
   /* ── Achsvermessung ──────────────────────────── */
@@ -273,17 +281,22 @@ export default function Gallery() {
                     ease,
                   }}
                 >
-                  {/* Placeholder gradient – HIER ECHTES BILD EINSETZEN */}
                   <div
-                    className={`relative bg-gradient-to-br ${item.gradient} w-full ${
+                    className={`relative w-full ${
                       item.tall
                         ? 'aspect-[3/4] sm:aspect-auto sm:h-full min-h-[280px]'
                         : 'aspect-[4/3]'
-                    } transition-transform duration-700 group-hover:scale-[1.04]`}
+                    } transition-transform duration-700 group-hover:scale-[1.04] overflow-hidden`}
                   >
-                    <span className="absolute inset-0 flex items-center justify-center font-body text-[0.6rem] text-carbon-500/30 tracking-widest uppercase p-4 text-center leading-relaxed">
-                      {item.text}
-                    </span>
+                    {item.src ? (
+                      <img src={item.src} alt={item.caption} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : (
+                      <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient}`}>
+                        <span className="absolute inset-0 flex items-center justify-center font-body text-[0.6rem] text-carbon-500/30 tracking-widest uppercase p-4 text-center leading-relaxed">
+                          {item.text}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Hover overlay */}
