@@ -31,7 +31,7 @@ export default function Hero() {
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%'])
 
   return (
-    <section ref={wrapperRef} id="hero" className="relative" style={{ height: '250vh' }}>
+    <section ref={wrapperRef} id="hero" className="relative" style={{ height: '170vh' }}>
       {/* ── Sticky viewport ────────────────────────── */}
       <div className="sticky top-0 h-[100svh] min-h-[600px] flex items-center justify-center overflow-hidden">
         {/* ── Background layers ──────────────────── */}
