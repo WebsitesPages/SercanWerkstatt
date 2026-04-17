@@ -1,6 +1,6 @@
 'use client'
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { motion, useInView, AnimatePresence } from 'framer-motion'
+import { motion, useInView } from 'framer-motion'
 
 interface CarShowroom360Props {
   images: string[]
@@ -16,6 +16,8 @@ export default function CarShowroom360({
   const containerRef = useRef<HTMLDivElement>(null)
   const inView = useInView(containerRef, { once: true, margin: '-10% 0px' })
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [prevIndex, setPrevIndex] = useState(0)
+  const [transitioning, setTransitioning] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [autoPlay, setAutoPlay] = useState(true)
   const [dragStartX, setDragStartX] = useState(0)
@@ -23,19 +25,29 @@ export default function CarShowroom360({
   const [hasInteracted, setHasInteracted] = useState(false)
   const autoPlayRef = useRef(autoPlay)
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout>>()
 
   autoPlayRef.current = autoPlay
+
+  /* ── Crossfade-Logik ────────────────────────────── */
+  const goToIndex = useCallback((newIndex: number) => {
+    setPrevIndex(currentIndex)
+    setCurrentIndex(newIndex)
+    setTransitioning(true)
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
+    transitionTimerRef.current = setTimeout(() => setTransitioning(false), 700)
+  }, [currentIndex])
 
   /* ── Auto-rotation ─────────────────────────────── */
   useEffect(() => {
     if (!inView || !autoPlay) return
     const interval = setInterval(() => {
       if (autoPlayRef.current) {
-        setCurrentIndex((prev) => (prev + 1) % images.length)
+        goToIndex((currentIndex + 1) % images.length)
       }
-    }, 1800)
+    }, 2400)
     return () => clearInterval(interval)
-  }, [inView, autoPlay, images.length])
+  }, [inView, autoPlay, images.length, currentIndex, goToIndex])
 
   /* ── Drag to rotate ────────────────────────────── */
   const onDown = useCallback(
@@ -62,9 +74,9 @@ export default function CarShowroom360({
       const newIndex =
         ((dragStartIndex - indexOffset) % images.length + images.length) %
         images.length
-      setCurrentIndex(newIndex)
+      if (newIndex !== currentIndex) goToIndex(newIndex)
     },
-    [dragging, dragStartX, dragStartIndex, images.length],
+    [dragging, dragStartX, dragStartIndex, images.length, currentIndex, goToIndex],
   )
 
   const onUp = useCallback(() => {
@@ -74,12 +86,12 @@ export default function CarShowroom360({
 
   /* ── Dot click ─────────────────────────────────── */
   const goTo = useCallback((idx: number) => {
-    setCurrentIndex(idx)
+    goToIndex(idx)
     setAutoPlay(false)
     setHasInteracted(true)
     if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
     resumeTimerRef.current = setTimeout(() => setAutoPlay(true), 4000)
-  }, [])
+  }, [goToIndex])
 
   const progress = ((currentIndex + 1) / images.length) * 100
 
@@ -98,20 +110,31 @@ export default function CarShowroom360({
         onPointerUp={onUp}
         onPointerCancel={onUp}
       >
-        {/* ── Images ───────────────────────────────── */}
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={currentIndex}
-            src={images[currentIndex]}
-            alt={`Ansicht ${currentIndex + 1}`}
-            className="absolute inset-0 w-full h-full object-cover"
+        {/* ── Images (crossfade) ────────────────────── */}
+        {/* Vorheriges Bild (bleibt kurz sichtbar darunter) */}
+        {transitioning && (
+          <img
+            src={images[prevIndex]}
+            alt={`Ansicht ${prevIndex + 1}`}
+            className="absolute inset-0 w-full h-full object-cover z-[0]"
             draggable={false}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
           />
-        </AnimatePresence>
+        )}
+        {/* Aktuelles Bild (blendet sanft ein) */}
+        <img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt={`Ansicht ${currentIndex + 1}`}
+          className="absolute inset-0 w-full h-full object-cover z-[1] transition-opacity duration-700 ease-in-out"
+          style={{ opacity: transitioning ? 0 : 1 }}
+          draggable={false}
+          onLoad={(e) => {
+            // Nach dem Laden sanft einblenden
+            requestAnimationFrame(() => {
+              (e.target as HTMLImageElement).style.opacity = '1'
+            })
+          }}
+        />
 
         {/* ── Gradient overlays ────────────────────── */}
         <div className="absolute inset-0 bg-gradient-to-t from-carbon-950/60 via-transparent to-carbon-950/30 pointer-events-none" />
