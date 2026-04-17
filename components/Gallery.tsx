@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import RevealSection from './ui/RevealSection'
 import BeforeAfterSlider from './ui/BeforeAfterSlider'
+import CarShowroom360 from './ui/CarShowroom360'
 
 /* ── Kategorien ────────────────────────────────────── */
 const categories = [
@@ -52,7 +53,14 @@ interface SingleItem {
   src?: string
 }
 
-type GalleryItem = BeforeAfterItem | SingleItem
+interface ShowroomItem {
+  type: 'showroom360'
+  category: CategoryId
+  caption: string
+  images: string[]
+}
+
+type GalleryItem = BeforeAfterItem | SingleItem | ShowroomItem
 
 const items: GalleryItem[] = [
   /* ── Unfallinstandsetzung ────────────────────── */
@@ -153,6 +161,20 @@ const items: GalleryItem[] = [
     src: `${BASE}/images/Aufbereitung-3.jpg`,
     gradient: '',
     text: '',
+  },
+  {
+    type: 'showroom360',
+    category: 'aufbereitung',
+    caption: 'Audi e-tron GT — 360° Showroom nach Aufbereitung',
+    images: [
+      `${BASE}/images/etron1.jpg`,
+      `${BASE}/images/etron2.jpg`,
+      `${BASE}/images/etron3.jpg`,
+      `${BASE}/images/etron4.jpg`,
+      `${BASE}/images/etron5.jpg`,
+      `${BASE}/images/etron6.jpg`,
+      `${BASE}/images/etron7.jpg`,
+    ],
   },
 
   /* ── Achsvermessung ──────────────────────────── */
@@ -265,6 +287,20 @@ export default function Gallery() {
                       afterText={item.afterText}
                       beforeSrc={item.beforeSrc}
                       afterSrc={item.afterSrc}
+                      caption={item.caption}
+                    />
+                  </div>
+                )
+              }
+
+              if (item.type === 'showroom360') {
+                return (
+                  <div
+                    key={`${item.category}-360-${i}`}
+                    className="sm:col-span-2"
+                  >
+                    <CarShowroom360
+                      images={item.images}
                       caption={item.caption}
                     />
                   </div>

@@ -36,6 +36,7 @@ const config: Config = {
         'shimmer': 'shimmer 2.5s linear infinite',
         'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
         'line-grow': 'lineGrow 1.5s ease-out forwards',
+        'spin-slow': 'spin 3s linear infinite',
       },
       keyframes: {
         shimmer: {
