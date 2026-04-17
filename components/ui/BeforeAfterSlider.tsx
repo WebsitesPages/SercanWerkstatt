@@ -1,5 +1,5 @@
 'use client'
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import { motion, useInView } from 'framer-motion'
 
 interface BeforeAfterSliderProps {
@@ -29,10 +29,47 @@ export default function BeforeAfterSlider({
   afterSrc,
 }: BeforeAfterSliderProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const inView = useInView(containerRef, { once: true, margin: '-10% 0px' })
+  const inView = useInView(containerRef, { once: false, margin: '-10% 0px' })
   const [position, setPosition] = useState(50)
   const [dragging, setDragging] = useState(false)
+  const [autoAnimate, setAutoAnimate] = useState(true)
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const rafRef = useRef<number>()
+  const startTimeRef = useRef<number>(0)
+  const phaseOffsetRef = useRef<number>(0)
 
+  /* ── Auto-animation: sanftes Hin- und Herpendeln ─── */
+  useEffect(() => {
+    if (!inView || !autoAnimate || dragging) {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+      return
+    }
+
+    // Berechne Phase-Offset damit Animation von aktueller Position startet
+    // position = 50 + 20 * sin(phase) → phase = asin((position - 50) / 20)
+    const clamped = Math.max(-1, Math.min(1, (position - 50) / 20))
+    phaseOffsetRef.current = Math.asin(clamped)
+    startTimeRef.current = 0
+
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) startTimeRef.current = timestamp
+      const elapsed = timestamp - startTimeRef.current
+
+      // Langsame Sinuswelle: ~4.5s pro Zyklus, pendelt zwischen 30% und 70%
+      const phase = phaseOffsetRef.current + (elapsed / 4500) * Math.PI * 2
+      const newPos = 50 + 20 * Math.sin(phase)
+
+      setPosition(newPos)
+      rafRef.current = requestAnimationFrame(animate)
+    }
+
+    rafRef.current = requestAnimationFrame(animate)
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [inView, autoAnimate, dragging])
+
+  /* ── Drag-Logik ────────────────────────────────────── */
   const updatePos = useCallback((clientX: number) => {
     if (!containerRef.current) return
     const { left, width } = containerRef.current.getBoundingClientRect()
@@ -42,8 +79,10 @@ export default function BeforeAfterSlider({
   const onDown = useCallback(
     (e: React.PointerEvent) => {
       setDragging(true)
+      setAutoAnimate(false)
       updatePos(e.clientX)
       ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
     },
     [updatePos],
   )
@@ -57,7 +96,20 @@ export default function BeforeAfterSlider({
     [dragging, updatePos],
   )
 
-  const onUp = useCallback(() => setDragging(false), [])
+  const onUp = useCallback(() => {
+    setDragging(false)
+    // Nach 3.5s Pause die Auto-Animation wieder starten
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+    resumeTimerRef.current = setTimeout(() => setAutoAnimate(true), 3500)
+  }, [])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current)
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
 
   return (
     <motion.div
@@ -151,7 +203,7 @@ export default function BeforeAfterSlider({
         </div>
 
         {/* ── Drag hint (fades after interaction) ─── */}
-        {!dragging && (
+        {!dragging && autoAnimate && (
           <motion.div
             className="absolute bottom-3 left-1/2 -translate-x-1/2 z-[3]"
             initial={{ opacity: 0 }}
