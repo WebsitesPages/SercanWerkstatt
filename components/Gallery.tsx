@@ -176,6 +176,18 @@ const items: GalleryItem[] = [
       `${BASE}/images/etron5.jpg`,
     ],
   },
+  {
+    type: 'showroom360',
+    category: 'aufbereitung',
+    caption: 'BMW M4 Competition — 360° Showroom nach Aufbereitung',
+    images: [
+      `${BASE}/images/m4.jpg`,
+      `${BASE}/images/m4-3.jpg`,
+      `${BASE}/images/m4-2.jpg`,
+      `${BASE}/images/m4-5.jpg`,
+      `${BASE}/images/m4-4.jpg`,
+    ],
+  },
 
   /* ── Achsvermessung ──────────────────────────── */
   {
