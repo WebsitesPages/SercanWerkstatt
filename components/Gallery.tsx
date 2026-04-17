@@ -167,13 +167,13 @@ const items: GalleryItem[] = [
     category: 'aufbereitung',
     caption: 'Audi e-tron GT — 360° Showroom nach Aufbereitung',
     images: [
-      `${BASE}/images/etron1.jpg`,
-      `${BASE}/images/etron2.jpg`,
-      `${BASE}/images/etron3.jpg`,
-      `${BASE}/images/etron4.jpg`,
-      `${BASE}/images/etron5.jpg`,
       `${BASE}/images/etron6.jpg`,
+      `${BASE}/images/etron1.jpg`,
+      `${BASE}/images/etron4.jpg`,
+      `${BASE}/images/etron3.jpg`,
       `${BASE}/images/etron7.jpg`,
+      `${BASE}/images/etron2.jpg`,
+      `${BASE}/images/etron5.jpg`,
     ],
   },
 
