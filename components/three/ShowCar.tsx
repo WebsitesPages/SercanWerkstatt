@@ -62,6 +62,7 @@ const rimFreshColor = new THREE.Color('#f2f3f5')
 export default function ShowCar({ progress }: { progress: MotionValue<number> }) {
   const { scene } = useGLTF(MODEL_URL, DRACO_PATH)
   const engineLight = useRef<THREE.PointLight>(null)
+  const engineMesh = useRef<THREE.Mesh>(null)
 
   const { mat: paintMat, uniforms } = useMemo(createPaintMaterial, [])
 
@@ -117,11 +118,11 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
     const { index, t } = getChapter(progress.get())
 
     /* Kapitel 1 — Scan-Rebuild: Clip-Ebene fährt durchs Auto und zurück.
-       Minimum -2.0 lässt immer ein Heck-Stück stehen (Auto-Spanne ±2.3) */
+       Minimum -0.5 lässt immer die hintere Hälfte stehen (Auto-Spanne ±2.3) */
     let c = 6
     if (index === 1) {
       const sweep = Math.sin(Math.PI * easeInOut(t))
-      c = 2.8 - sweep * 4.8
+      c = 2.8 - sweep * 3.3
     }
     clipPlane.constant = c
 
@@ -130,6 +131,7 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
     paintMat.opacity = 1 - xray * 0.78
     engineGlowMat.emissiveIntensity = xray * 4
     if (engineLight.current) engineLight.current.intensity = xray * 4
+    if (engineMesh.current) engineMesh.current.visible = xray > 0.01
 
     /* Kapitel 3 — Radwechsel vorn rechts: raus, drehen, neue Felge, rein */
     let out = 0
@@ -151,7 +153,8 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
       if (outDir.current) {
         parts.wheel.position
           .copy(parts.wheelBase)
-          .addScaledVector(outDir.current, out * 1.3)
+          .addScaledVector(outDir.current, out * 0.9)
+        parts.wheel.position.y += out * 0.25
       }
       parts.wheel.rotation.x = parts.wheelBaseRotX - out * 16
     }
@@ -177,7 +180,7 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
       <primitive object={scene} />
 
       {/* Glühender Motorblock im Heck (Mittelmotor), sichtbar im Röntgen-Kapitel */}
-      <mesh material={engineGlowMat} position={[0, 0.62, 1.35]}>
+      <mesh ref={engineMesh} material={engineGlowMat} position={[0, 0.62, 1.35]} visible={false}>
         <boxGeometry args={[0.85, 0.35, 0.7]} />
       </mesh>
       <pointLight ref={engineLight} position={[0, 1.0, 1.35]} color="#ff5040" intensity={0} distance={3.5} />
