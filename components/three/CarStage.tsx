@@ -21,8 +21,8 @@ function CameraRig({ progress }: { progress: MotionValue<number> }) {
     if (index === 0) {
       /* Orbit ums Auto */
       const a = 0.9 - e * 1.4
-      const r = 7.4 - e * 1.2
-      desired.current.set(Math.sin(a) * r, 2.6 - e * 1.1, Math.cos(a) * r)
+      const r = 8.4 - e * 1.2
+      desired.current.set(Math.sin(a) * r, 2.8 - e * 1.1, Math.cos(a) * r)
       desiredTarget.current.set(0, 0.75, 0)
     } else {
       const k = CAM[index]!
@@ -36,6 +36,12 @@ function CameraRig({ progress }: { progress: MotionValue<number> }) {
         k.tFrom[1] + (k.tTo[1] - k.tFrom[1]) * e,
         k.tFrom[2] + (k.tTo[2] - k.tFrom[2]) * e
       )
+    }
+
+    /* Hochformat: Kamera weiter weg, damit das Auto ins Bild passt */
+    const aspect = state.size.width / state.size.height
+    if (aspect < 0.9) {
+      desired.current.sub(desiredTarget.current).multiplyScalar(1.45).add(desiredTarget.current)
     }
 
     /* Gedämpfte Annäherung — glättet Kapitel-Übergänge */
