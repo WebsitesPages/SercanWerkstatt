@@ -151,3 +151,22 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* ── Light streaks (CarStory Intro) ────────────────── */
+.light-streak {
+  position: absolute;
+  top: 30%;
+  left: -40%;
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  transform: rotate(-18deg);
+  animation: streakMove 4.5s ease-in-out infinite;
+}
+
+@keyframes streakMove {
+  0% { transform: translateX(-60vw) rotate(-18deg); opacity: 0; }
+  15% { opacity: 1; }
+  60% { opacity: 0.6; }
+  100% { transform: translateX(220vw) rotate(-18deg); opacity: 0; }
+}

@@ -1,6 +1,7 @@
 import Navigation from '@/components/Navigation'
 import Hero from '@/components/Hero'
 import QuickActions from '@/components/QuickActions'
+import CarStory from '@/components/CarStory'
 import Services from '@/components/Services'
 import WhyRenginal from '@/components/WhyRenginal'
 import Process from '@/components/Process'
@@ -18,6 +19,7 @@ export default function Home() {
       <main>
         <Hero />
         <QuickActions />
+        <CarStory />
         <Services />
         <WhyRenginal />
         <Process />
