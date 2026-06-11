@@ -99,3 +99,9 @@ components/
     RevealSection.tsx  Scroll-gesteuerte Reveals
     ServiceCard.tsx    3D-Tilt Service-Karte
 ```
+
+## 3D-Modell
+
+Das Showcar in der Film-Sektion ist das **Ferrari 458 Italia** glTF-Modell aus den
+offiziellen [three.js-Beispielen](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf)
+(Autor: vicent091036). Draco-Decoder liegt lokal unter `public/draco/`.

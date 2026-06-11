@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import {
-  motion, useScroll, useTransform, useReducedMotion, useInView,
+  motion, useScroll, useTransform, useReducedMotion,
   type MotionValue,
 } from 'framer-motion'
 import { CHAPTERS, N_CHAPTERS } from '@/lib/carStory'
@@ -112,7 +112,6 @@ function StaticStory() {
 export default function CarStory() {
   const ref = useRef<HTMLElement>(null)
   const reduced = useReducedMotion()
-  const inView = useInView(ref, { margin: '600px 0px 600px 0px' })
   const [quality, setQuality] = useState<'high' | 'low'>('high')
 
   useEffect(() => {
@@ -141,7 +140,8 @@ export default function CarStory() {
           }}
         />
 
-        {inView && <CarStage progress={scrollYProgress} quality={quality} />}
+        {/* Sofort mounten — Canvas, Chunk und Ferrari-Modell laden ab Seitenstart */}
+        <CarStage progress={scrollYProgress} quality={quality} />
 
         {/* Lichtstreifen im Intro */}
         <motion.div style={{ opacity: hintOpacity }} className="absolute inset-0 pointer-events-none overflow-hidden">

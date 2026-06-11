@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { Suspense, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { ContactShadows, Environment, Lightformer } from '@react-three/drei'
 import * as THREE from 'three'
@@ -65,7 +65,7 @@ export default function CarStage({
     <Canvas
       dpr={high ? [1, 1.75] : [1, 1.4]}
       camera={{ fov: 35, position: [6.2, 2.6, 4.6] }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', localClippingEnabled: true }}
       style={{ position: 'absolute', inset: 0 }}
     >
       <ambientLight intensity={0.25} />
@@ -79,7 +79,9 @@ export default function CarStage({
         <Lightformer intensity={0.6} color="#ffffff" position={[0, 1.0, 7]} scale={[6, 1, 1]} />
       </Environment>
 
-      <ShowCar progress={progress} />
+      <Suspense fallback={null}>
+        <ShowCar progress={progress} />
+      </Suspense>
 
       <ContactShadows
         position={[0, 0.01, 0]}

@@ -2,73 +2,27 @@
 
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { RoundedBox } from '@react-three/drei'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import type { MotionValue } from 'framer-motion'
 import { getChapter, easeInOut, smooth } from '@/lib/carStory'
 
-/* ── Basis-Positionen + Explosions-Offsets ─────────────── */
-type V3 = [number, number, number]
+/* Ferrari 458 Italia — Modell aus den offiziellen three.js-Beispielen.
+   Autor: vicent091036, bereitgestellt über das three.js-Repository.
+   Draco-komprimiert; Decoder liegt lokal unter /public/draco. */
+const MODEL_URL = '/SercanWerkstatt/models/ferrari.glb'
+const DRACO_PATH = '/SercanWerkstatt/draco/'
 
-const POS: Record<string, V3> = {
-  hoodPivot: [0.55, 1.06, 0],
-  roof: [-0.45, 1.6, 0],
-  glass: [-0.35, 1.28, 0],
-  doorL: [-0.05, 0.74, 0.97],
-  doorR: [-0.05, 0.74, -0.97],
-  frontBumper: [2.2, 0.55, 0],
-  rearBumper: [-2.2, 0.55, 0],
-  spoiler: [-2.05, 1.32, 0],
-  wheelFL: [1.45, 0.44, 0.88],
-  wheelFR: [1.45, 0.44, -0.88],
-  wheelRL: [-1.45, 0.44, 0.88],
-  wheelRR: [-1.45, 0.44, -0.88],
-}
-
-const EXPLODE: Record<string, V3> = {
-  hoodPivot: [0.7, 1.1, 0],
-  roof: [0, 1.15, 0],
-  glass: [0, 0.6, 0],
-  doorL: [0, 0.2, 1.2],
-  doorR: [0, 0.2, -1.2],
-  frontBumper: [1.2, 0.25, 0],
-  rearBumper: [-1.2, 0.25, 0],
-  spoiler: [-0.6, 0.8, 0],
-  wheelFL: [0, 0, 1.0],
-  wheelFR: [0, 0, -1.0],
-  wheelRL: [0, 0, 1.0],
-  wheelRR: [0, 0, -1.0],
-}
-
-/* ── Geteilte Materialien (Modul-Scope, nur Client) ────── */
-const tireMat = new THREE.MeshStandardMaterial({ color: '#101113', roughness: 0.92 })
-const trimMat = new THREE.MeshStandardMaterial({ color: '#0c0d0f', roughness: 0.55, metalness: 0.3 })
-const glassMat = new THREE.MeshPhysicalMaterial({
-  color: '#0b0e13', metalness: 0.9, roughness: 0.08, clearcoat: 1,
-})
-const rimBaseColor = new THREE.Color('#9a9da3')
-const rimFreshColor = new THREE.Color('#e8e9ee')
-const rimMat = new THREE.MeshStandardMaterial({
-  color: rimBaseColor, metalness: 0.95, roughness: 0.28,
-})
-const discMat = new THREE.MeshStandardMaterial({ color: '#3c3f44', metalness: 0.9, roughness: 0.4 })
-const engineMat = new THREE.MeshStandardMaterial({ color: '#1a1c20', metalness: 0.8, roughness: 0.45 })
-const engineGlowMat = new THREE.MeshStandardMaterial({
-  color: '#26090b', emissive: '#ff3b30', emissiveIntensity: 0,
-})
-const headlightMat = new THREE.MeshStandardMaterial({
-  color: '#dfe8ff', emissive: '#cfe0ff', emissiveIntensity: 1.4,
-})
-const taillightMat = new THREE.MeshStandardMaterial({
-  color: '#3a0a0a', emissive: '#ff2222', emissiveIntensity: 1.2,
-})
+/* Sofort beim Laden des Chunks anstoßen — Punkt 1: kein spätes Einladen */
+useGLTF.preload(MODEL_URL, DRACO_PATH)
 
 /* ── Lack-Material mit Welle (uPrimerMix, uEdge) ───────── */
 function createPaintMaterial() {
   const uniforms = { uPrimerMix: { value: 0 }, uEdge: { value: 4 } }
   const mat = new THREE.MeshPhysicalMaterial({
-    color: '#c92a2a', metalness: 0.85, roughness: 0.32,
-    clearcoat: 1, clearcoatRoughness: 0.12,
+    color: '#c4060d', metalness: 0.9, roughness: 0.28,
+    clearcoat: 1, clearcoatRoughness: 0.1,
+    transparent: true, opacity: 1,
   })
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPrimerMix = uniforms.uPrimerMix
@@ -99,93 +53,85 @@ function createPaintMaterial() {
   return { mat, uniforms }
 }
 
-/* ── Rad: Torus-Reifen + 5-Speichen-Felge ──────────────── */
-const SPOKE_ANGLES = [0, 1, 2, 3, 4].map((i) => (i * Math.PI * 2) / 5)
+const engineGlowMat = new THREE.MeshStandardMaterial({
+  color: '#1a0505', emissive: '#ff3b30', emissiveIntensity: 0,
+})
+const rimFreshColor = new THREE.Color('#f2f3f5')
 
-function Wheel({
-  groupRef, rim,
-}: {
-  groupRef: React.RefObject<THREE.Group>
-  rim: THREE.MeshStandardMaterial
-}) {
-  return (
-    <group ref={groupRef}>
-      <mesh material={tireMat}>
-        <torusGeometry args={[0.31, 0.13, 16, 36]} />
-      </mesh>
-      <mesh material={discMat} position={[0, 0, -0.02]} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.17, 0.17, 0.05, 24]} />
-      </mesh>
-      {SPOKE_ANGLES.map((a) => (
-        <group key={a} rotation-z={a}>
-          <mesh material={rim} position={[0.14, 0, 0.06]}>
-            <boxGeometry args={[0.28, 0.07, 0.05]} />
-          </mesh>
-        </group>
-      ))}
-      <mesh material={rim} position={[0, 0, 0.06]}>
-        <torusGeometry args={[0.29, 0.025, 8, 36]} />
-      </mesh>
-      <mesh material={rim} position={[0, 0, 0.08]} rotation-x={Math.PI / 2}>
-        <cylinderGeometry args={[0.05, 0.05, 0.04, 16]} />
-      </mesh>
-    </group>
-  )
-}
-
-/* ── Showcar ───────────────────────────────────────────── */
+/* ── Showcar: Ferrari 458, scroll-animiert ─────────────── */
 export default function ShowCar({ progress }: { progress: MotionValue<number> }) {
-  const hoodPivot = useRef<THREE.Group>(null)
-  const roof = useRef<THREE.Group>(null)
-  const glass = useRef<THREE.Group>(null)
-  const doorL = useRef<THREE.Group>(null)
-  const doorR = useRef<THREE.Group>(null)
-  const frontBumper = useRef<THREE.Group>(null)
-  const rearBumper = useRef<THREE.Group>(null)
-  const spoiler = useRef<THREE.Group>(null)
-  const wheelFL = useRef<THREE.Group>(null)
-  const wheelFR = useRef<THREE.Group>(null)
-  const wheelRL = useRef<THREE.Group>(null)
-  const wheelRR = useRef<THREE.Group>(null)
+  const { scene } = useGLTF(MODEL_URL, DRACO_PATH)
   const engineLight = useRef<THREE.PointLight>(null)
 
   const { mat: paintMat, uniforms } = useMemo(createPaintMaterial, [])
-  const swapRimMat = useMemo(() => {
-    const m = rimMat.clone()
-    m.emissive = new THREE.Color('#ff2a2a')
-    m.emissiveIntensity = 0
-    return m
-  }, [])
 
-  const partRefs: [React.RefObject<THREE.Group>, string][] = [
-    [hoodPivot, 'hoodPivot'], [roof, 'roof'], [glass, 'glass'],
-    [doorL, 'doorL'], [doorR, 'doorR'],
-    [frontBumper, 'frontBumper'], [rearBumper, 'rearBumper'], [spoiler, 'spoiler'],
-    [wheelFR, 'wheelFR'], [wheelRL, 'wheelRL'], [wheelRR, 'wheelRR'],
-  ]
+  /* Welt-Clip-Ebene: hält nur x <= constant (Scan-Rebuild in Kapitel 1) */
+  const clipPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), 6), [])
+
+  const parts = useMemo(() => {
+    /* Karosserie bekommt unser Lack-Material */
+    const body = scene.getObjectByName('body') as THREE.Mesh | undefined
+    if (body) body.material = paintMat
+
+    /* Felge vorn rechts (Kamera-Seite) bekommt eigenes Material für den Wechsel */
+    const rimFr = scene.getObjectByName('rim_fr') as THREE.Mesh | undefined
+    let rimMat: THREE.MeshStandardMaterial | null = null
+    let rimBase: THREE.Color | null = null
+    if (rimFr && (rimFr.material as THREE.Material).hasOwnProperty('color')) {
+      rimMat = (rimFr.material as THREE.MeshStandardMaterial).clone()
+      rimMat.emissive = new THREE.Color('#ff2a2a')
+      rimMat.emissiveIntensity = 0
+      rimFr.material = rimMat
+      rimBase = rimMat.color.clone()
+    }
+
+    /* Clip-Ebene auf alle Modell-Materialien */
+    const mats = new Set<THREE.Material>()
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (mesh.isMesh) {
+        const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+        list.forEach((m) => mats.add(m))
+      }
+    })
+    mats.add(paintMat)
+    mats.forEach((m) => {
+      m.clippingPlanes = [clipPlane]
+    })
+
+    /* Wechsel-Rad: vorn rechts = Kamera-Seite (+z Welt) */
+    const wheel = scene.getObjectByName('wheel_fr') as THREE.Group | undefined
+    return {
+      wheel,
+      wheelBase: wheel ? wheel.position.clone() : new THREE.Vector3(),
+      wheelBaseRotX: wheel ? wheel.rotation.x : 0,
+      rimMat,
+      rimBase,
+    }
+  }, [scene, paintMat, clipPlane])
+
+  const outDir = useRef<THREE.Vector3 | null>(null)
+  const tmpMatrix = useMemo(() => new THREE.Matrix4(), [])
 
   useFrame(() => {
     const { index, t } = getChapter(progress.get())
 
-    /* Kapitel 1 — Explosionsansicht */
-    const ex = index === 1 ? Math.sin(Math.PI * easeInOut(t)) : 0
-    for (const [ref, key] of partRefs) {
-      const g = ref.current
-      if (!g) continue
-      g.position.set(
-        POS[key][0] + EXPLODE[key][0] * ex,
-        POS[key][1] + EXPLODE[key][1] * ex,
-        POS[key][2] + EXPLODE[key][2] * ex
-      )
+    /* Kapitel 1 — Scan-Rebuild: Clip-Ebene fährt durchs Auto und zurück.
+       Minimum -2.0 lässt immer ein Heck-Stück stehen (Auto-Spanne ±2.3) */
+    let c = 6
+    if (index === 1) {
+      const sweep = Math.sin(Math.PI * easeInOut(t))
+      c = 2.8 - sweep * 4.8
     }
+    clipPlane.constant = c
 
-    /* Kapitel 2 — Motorhaube + Motor-Glow */
-    const open = index === 2 ? smooth(0.08, 0.45, t) * (1 - smooth(0.85, 1, t)) : 0
-    if (hoodPivot.current) hoodPivot.current.rotation.z = open * 0.9 + ex * 0.35
-    engineGlowMat.emissiveIntensity = open * 3
-    if (engineLight.current) engineLight.current.intensity = open * 3.5
+    /* Kapitel 2 — Röntgenblick: Karosserie wird gläsern, Motor glüht (Heckmotor!) */
+    const xray = index === 2 ? smooth(0.08, 0.4, t) * (1 - smooth(0.85, 1, t)) : 0
+    paintMat.opacity = 1 - xray * 0.78
+    engineGlowMat.emissiveIntensity = xray * 4
+    if (engineLight.current) engineLight.current.intensity = xray * 4
 
-    /* Kapitel 3 — Radwechsel vorn links (+Z) */
+    /* Kapitel 3 — Radwechsel vorn rechts: raus, drehen, neue Felge, rein */
     let out = 0
     let fresh = 0
     if (index === 3) {
@@ -194,17 +140,25 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
     } else if (index > 3) {
       fresh = 1
     }
-    const w = wheelFL.current
-    if (w) {
-      w.position.set(
-        POS.wheelFL[0],
-        POS.wheelFL[1],
-        POS.wheelFL[2] + EXPLODE.wheelFL[2] * ex + out * 1.25
-      )
-      w.rotation.z = -out * 16
+    if (parts.wheel) {
+      /* Ausbau-Richtung = Welt +z (Kamera-Seite), in Eltern-Koordinaten umgerechnet */
+      if (!outDir.current && parts.wheel.parent) {
+        parts.wheel.parent.updateWorldMatrix(true, false)
+        outDir.current = new THREE.Vector3(0, 0, 1)
+          .transformDirection(tmpMatrix.copy(parts.wheel.parent.matrixWorld).invert())
+          .normalize()
+      }
+      if (outDir.current) {
+        parts.wheel.position
+          .copy(parts.wheelBase)
+          .addScaledVector(outDir.current, out * 1.3)
+      }
+      parts.wheel.rotation.x = parts.wheelBaseRotX - out * 16
     }
-    swapRimMat.color.lerpColors(rimBaseColor, rimFreshColor, fresh)
-    swapRimMat.emissiveIntensity = Math.sin(fresh * Math.PI) * 1.5
+    if (parts.rimMat && parts.rimBase) {
+      parts.rimMat.color.lerpColors(parts.rimBase, rimFreshColor, fresh)
+      parts.rimMat.emissiveIntensity = Math.sin(fresh * Math.PI) * 1.5
+    }
 
     /* Kapitel 4 — Lack-Welle */
     let primer = 0
@@ -215,92 +169,18 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
     }
     uniforms.uPrimerMix.value = primer
     uniforms.uEdge.value = edge
-
-    /* Intro — Scheinwerfer heller */
-    headlightMat.emissiveIntensity = index === 0 ? 2.4 : 1.2
   })
 
   return (
-    <group>
-      {/* Karosserie-Kern */}
-      <RoundedBox args={[4.5, 0.6, 1.86]} radius={0.14} smoothness={4} position={[0, 0.68, 0]} material={paintMat} />
-      {/* Heckdeck */}
-      <RoundedBox args={[1.7, 0.32, 1.78]} radius={0.1} smoothness={4} position={[-1.35, 1.05, 0]} material={paintMat} />
+    /* Modell: Länge entlang z, Front -z → um -90° drehen, Front zeigt +x */
+    <group rotation-y={-Math.PI / 2}>
+      <primitive object={scene} />
 
-      {/* Motorhaube (Pivot an Hinterkante) */}
-      <group ref={hoodPivot} position={POS.hoodPivot}>
-        <RoundedBox args={[1.35, 0.12, 1.74]} radius={0.06} smoothness={4} position={[0.675, 0, 0]} material={paintMat} />
-      </group>
-
-      {/* Motorraum */}
-      <mesh material={trimMat} position={[1.25, 0.72, 0]}>
-        <boxGeometry args={[1.2, 0.4, 1.5]} />
+      {/* Glühender Motorblock im Heck (Mittelmotor), sichtbar im Röntgen-Kapitel */}
+      <mesh material={engineGlowMat} position={[0, 0.62, 1.35]}>
+        <boxGeometry args={[0.85, 0.35, 0.7]} />
       </mesh>
-      <mesh material={engineMat} position={[1.25, 0.8, 0]}>
-        <boxGeometry args={[0.6, 0.28, 0.8]} />
-      </mesh>
-      <mesh material={engineGlowMat} position={[1.25, 0.95, 0.22]}>
-        <boxGeometry args={[0.5, 0.04, 0.1]} />
-      </mesh>
-      <mesh material={engineGlowMat} position={[1.25, 0.95, -0.22]}>
-        <boxGeometry args={[0.5, 0.04, 0.1]} />
-      </mesh>
-      <pointLight ref={engineLight} position={[1.25, 1.25, 0]} color="#ff5040" intensity={0} distance={3} />
-
-      {/* Kabine */}
-      <group ref={glass} position={POS.glass}>
-        <RoundedBox args={[2.0, 0.55, 1.6]} radius={0.18} smoothness={4} material={glassMat} />
-      </group>
-      <group ref={roof} position={POS.roof}>
-        <RoundedBox args={[1.5, 0.09, 1.52]} radius={0.04} smoothness={4} material={paintMat} />
-      </group>
-
-      {/* Türen */}
-      <group ref={doorL} position={POS.doorL}>
-        <RoundedBox args={[1.3, 0.42, 0.08]} radius={0.03} smoothness={4} material={paintMat} />
-      </group>
-      <group ref={doorR} position={POS.doorR}>
-        <RoundedBox args={[1.3, 0.42, 0.08]} radius={0.03} smoothness={4} material={paintMat} />
-      </group>
-
-      {/* Stoßstangen + Grill */}
-      <group ref={frontBumper} position={POS.frontBumper}>
-        <RoundedBox args={[0.5, 0.42, 1.86]} radius={0.12} smoothness={4} material={paintMat} />
-      </group>
-      <group ref={rearBumper} position={POS.rearBumper}>
-        <RoundedBox args={[0.5, 0.42, 1.86]} radius={0.12} smoothness={4} material={paintMat} />
-      </group>
-      <mesh material={trimMat} position={[2.34, 0.52, 0]}>
-        <boxGeometry args={[0.06, 0.18, 0.9]} />
-      </mesh>
-
-      {/* Spoiler */}
-      <group ref={spoiler} position={POS.spoiler}>
-        <RoundedBox args={[0.45, 0.07, 1.65]} radius={0.03} smoothness={4} material={paintMat} />
-        <mesh material={trimMat} position={[0.05, -0.14, 0.55]}>
-          <boxGeometry args={[0.08, 0.22, 0.08]} />
-        </mesh>
-        <mesh material={trimMat} position={[0.05, -0.14, -0.55]}>
-          <boxGeometry args={[0.08, 0.22, 0.08]} />
-        </mesh>
-      </group>
-
-      {/* Lichter */}
-      <mesh material={headlightMat} position={[2.42, 0.78, 0.55]}>
-        <boxGeometry args={[0.06, 0.12, 0.42]} />
-      </mesh>
-      <mesh material={headlightMat} position={[2.42, 0.78, -0.55]}>
-        <boxGeometry args={[0.06, 0.12, 0.42]} />
-      </mesh>
-      <mesh material={taillightMat} position={[-2.44, 0.82, 0]}>
-        <boxGeometry args={[0.05, 0.1, 1.5]} />
-      </mesh>
-
-      {/* Räder */}
-      <Wheel groupRef={wheelFL} rim={swapRimMat} />
-      <Wheel groupRef={wheelFR} rim={rimMat} />
-      <Wheel groupRef={wheelRL} rim={rimMat} />
-      <Wheel groupRef={wheelRR} rim={rimMat} />
+      <pointLight ref={engineLight} position={[0, 1.0, 1.35]} color="#ff5040" intensity={0} distance={3.5} />
     </group>
   )
 }
