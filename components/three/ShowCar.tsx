@@ -5,7 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import type { MotionValue } from 'framer-motion'
 import { getChapter, easeInOut, smooth } from '@/lib/carStory'
-import { buildShowcar } from '@/lib/buildShowcar'
+import { buildShowcar, WHEEL_Y, WHEEL_Z } from '@/lib/buildShowcar'
 
 /* Hub-Winkel der Scharniere */
 const HOOD_OPEN = 0.55
@@ -46,12 +46,12 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
       fresh = 1
     }
 
-    parts.wheelFL.position.z = 0.78 + ex * WHEEL_EXPLODE + out * 1.05
-    parts.wheelFL.position.y = 0.345 + out * 0.3
+    parts.wheelFL.position.z = WHEEL_Z + ex * WHEEL_EXPLODE + out * 1.05
+    parts.wheelFL.position.y = WHEEL_Y + out * 0.3
     parts.wheelFL.rotation.z = -out * 14
-    parts.wheelRL.position.z = 0.78 + ex * WHEEL_EXPLODE
-    parts.wheelFR.position.z = -0.78 - ex * WHEEL_EXPLODE
-    parts.wheelRR.position.z = -0.78 - ex * WHEEL_EXPLODE
+    parts.wheelRL.position.z = WHEEL_Z + ex * WHEEL_EXPLODE
+    parts.wheelFR.position.z = -WHEEL_Z - ex * WHEEL_EXPLODE
+    parts.wheelRR.position.z = -WHEEL_Z - ex * WHEEL_EXPLODE
 
     mats.rimSwap.color.lerpColors(rimBaseColor, rimFreshColor, fresh)
     mats.rimSwap.emissiveIntensity = Math.sin(fresh * Math.PI) * 1.5

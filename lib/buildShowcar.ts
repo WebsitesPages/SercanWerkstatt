@@ -1,8 +1,18 @@
-/* Prozeduraler GT — elegante Coupé-Silhouette aus extrudierten Kurvenprofilen
-   mit echten Radlauf-Ausschnitten. Reines three.js (kein React/JSX), liefert
-   benannte, einzeln animierbare Teile zurück. Front = +x, Breite = z. */
+/* Prozedurales Luxus-Coupé im Stil klassischer britischer Grand Tourer:
+   aufrechter Chrom-Kühlergrill mit vertikalen Lamellen, lange flache Haube,
+   Zweifarb-Lackierung (Silber über Graphit-Schwarz) mit roter Coachline,
+   vertikale Heckleuchten. Reines three.js (kein React/JSX), benannte,
+   einzeln animierbare Teile. Front = +x, Breite = z. */
 
 import * as THREE from 'three'
+
+/* ── Maße ──────────────────────────────────────────────── */
+const WIDTH = 1.9
+const WHEEL_X = 1.55 /* Achsen bei ±1.55 (langer Radstand) */
+const ARCH_R = 0.52
+const FLOOR_Y = 0.32
+export const WHEEL_Y = 0.365
+export const WHEEL_Z = WIDTH / 2 - 0.16
 
 export type ShowcarMaterials = ReturnType<typeof createMaterials>
 
@@ -23,20 +33,12 @@ export interface Showcar {
   }
 }
 
-/* ── Maße ──────────────────────────────────────────────── */
-const WIDTH = 1.88
-const WHEEL_X = 1.42 /* Achsen bei ±1.42 */
-const ARCH_R = 0.5
-const FLOOR_Y = 0.3
-
-/* ── Materialien ───────────────────────────────────────── */
-export function createMaterials() {
-  const uniforms = { uPrimerMix: { value: 0 }, uEdge: { value: 4 } }
-  const paint = new THREE.MeshPhysicalMaterial({
-    color: '#a31621', metalness: 0.88, roughness: 0.3,
-    clearcoat: 1, clearcoatRoughness: 0.08,
-  })
-  paint.onBeforeCompile = (shader) => {
+/* ── Lack-Welle: gemeinsamer Shader-Patch für beide Lacktöne ── */
+function patchPaint(
+  mat: THREE.MeshPhysicalMaterial,
+  uniforms: { uPrimerMix: { value: number }; uEdge: { value: number } }
+) {
+  mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPrimerMix = uniforms.uPrimerMix
     shader.uniforms.uEdge = uniforms.uEdge
     shader.vertexShader = shader.vertexShader
@@ -62,18 +64,43 @@ export function createMaterials() {
         ].join('\n')
       )
   }
+}
+
+/* ── Materialien ───────────────────────────────────────── */
+export function createMaterials() {
+  const uniforms = { uPrimerMix: { value: 0 }, uEdge: { value: 4.5 } }
+
+  /* Graphit-Schwarz mit starkem Clearcoat — liest sich im dunklen Studio über Reflexionen */
+  const paint = new THREE.MeshPhysicalMaterial({
+    color: '#2b2e35', metalness: 0.9, roughness: 0.2,
+    clearcoat: 1, clearcoatRoughness: 0.06,
+  })
+  patchPaint(paint, uniforms)
+
+  /* Silber für Haube + Heckdeckel (Zweifarb-Look) */
+  const paintUpper = new THREE.MeshPhysicalMaterial({
+    color: '#c4c7cc', metalness: 0.92, roughness: 0.18,
+    clearcoat: 1, clearcoatRoughness: 0.08,
+  })
+  patchPaint(paintUpper, uniforms)
 
   return {
     uniforms,
     paint,
+    paintUpper,
+    chrome: new THREE.MeshStandardMaterial({ color: '#d7dade', metalness: 1, roughness: 0.08 }),
+    coachline: new THREE.MeshStandardMaterial({
+      color: '#7e1318', metalness: 0.6, roughness: 0.35,
+      emissive: '#c92a2a', emissiveIntensity: 0.15,
+    }),
     glass: new THREE.MeshPhysicalMaterial({
       color: '#0a0d12', metalness: 0.9, roughness: 0.06, clearcoat: 1,
     }),
     trim: new THREE.MeshStandardMaterial({ color: '#0b0c0e', roughness: 0.5, metalness: 0.4 }),
     tire: new THREE.MeshStandardMaterial({ color: '#0e0f11', roughness: 0.94 }),
-    rim: new THREE.MeshStandardMaterial({ color: '#b9bcc2', metalness: 0.95, roughness: 0.22 }),
+    rim: new THREE.MeshStandardMaterial({ color: '#c2c5ca', metalness: 0.95, roughness: 0.18 }),
     rimSwap: new THREE.MeshStandardMaterial({
-      color: '#b9bcc2', metalness: 0.95, roughness: 0.22,
+      color: '#c2c5ca', metalness: 0.95, roughness: 0.18,
       emissive: '#ff2a2a', emissiveIntensity: 0,
     }),
     disc: new THREE.MeshStandardMaterial({ color: '#43464c', metalness: 0.92, roughness: 0.35 }),
@@ -83,7 +110,7 @@ export function createMaterials() {
       color: '#1a0606', emissive: '#ff3b30', emissiveIntensity: 0,
     }),
     headlight: new THREE.MeshStandardMaterial({
-      color: '#e8f0ff', emissive: '#dceaff', emissiveIntensity: 2.2,
+      color: '#e8f0ff', emissive: '#dceaff', emissiveIntensity: 2,
     }),
     taillight: new THREE.MeshStandardMaterial({
       color: '#2a0606', emissive: '#ff1f1f', emissiveIntensity: 1.1,
@@ -109,121 +136,115 @@ function extrudeProfile(shape: THREE.Shape, width: number, mat: THREE.Material, 
     steps: 1,
   })
   geo.translate(0, 0, -width / 2)
-  const mesh = new THREE.Mesh(geo, mat)
-  return mesh
+  return new THREE.Mesh(geo, mat)
 }
 
-/* ── Karosserie-Hauptprofil (Seitenansicht, x=Länge, y=Höhe) ──
-   Mit echten Radlauf-Ausschnitten im Umriss. Die Hauben-/Heckdeckel-
-   Bereiche liegen 0.035 tiefer, damit die separaten Panels aufliegen. */
+/* ── Karosserie-Hauptprofil (Seitenansicht) ──────────────
+   Aufrechte Front, lange flache Haube, formale Dachpartie, ruhiges Heck.
+   Hauben-/Heckdeckel-Bereiche liegen 0.035 tiefer (Panels liegen auf). */
 function bodyShape() {
   const s = new THREE.Shape()
   const drop = 0.035
 
-  s.moveTo(-2.08, FLOOR_Y)
-  /* Unterboden → hinterer Radlauf */
+  s.moveTo(-2.28, FLOOR_Y)
   s.lineTo(-WHEEL_X - ARCH_R + 0.02, FLOOR_Y)
   s.absarc(-WHEEL_X, FLOOR_Y, ARCH_R, Math.PI, 0, true)
-  /* → vorderer Radlauf */
   s.lineTo(WHEEL_X - ARCH_R - 0.02, FLOOR_Y)
   s.absarc(WHEEL_X, FLOOR_Y, ARCH_R, Math.PI, 0, true)
-  s.lineTo(2.18, FLOOR_Y)
-  /* Front: steile Nase statt Rampe */
-  s.quadraticCurveTo(2.36, 0.36, 2.32, 0.58)
-  /* Lange, fast flache Haubenlinie (abgesenkt, Panel liegt drauf) */
-  s.quadraticCurveTo(1.55, 0.87 - drop, 0.72, 0.91 - drop)
-  /* Cowl: kleine Stufe hoch zur Gürtellinie */
-  s.lineTo(0.6, 0.94)
-  /* Gürtellinie unterm Glas, leicht fallend nach hinten */
-  s.lineTo(-1.45, 0.92)
-  /* Heckdeck (abgesenkt für Heckdeckel-Panel) */
-  s.quadraticCurveTo(-1.85, 0.89 - drop, -2.08, 0.78 - drop)
-  /* Kamm-Heck: Abrisskante */
-  s.lineTo(-2.16, 0.5)
-  s.quadraticCurveTo(-2.18, 0.36, -2.1, FLOOR_Y)
+  s.lineTo(2.34, FLOOR_Y)
+  /* Aufrechte, hohe Front */
+  s.quadraticCurveTo(2.45, 0.45, 2.42, 0.95)
+  /* Lange, fast waagerechte Haubenlinie (abgesenkt) */
+  s.lineTo(2.38, 0.97 - drop)
+  s.quadraticCurveTo(1.4, 1.03 - drop, 0.57, 1.04 - drop)
+  /* Cowl-Stufe zur Gürtellinie */
+  s.lineTo(0.45, 1.08)
+  /* Gürtellinie — lang und ruhig */
+  s.lineTo(-1.68, 1.05)
+  /* Heckdeck (abgesenkt) */
+  s.quadraticCurveTo(-2.08, 1.0 - drop, -2.3, 0.86 - drop)
+  /* Hohes, ruhiges Heck */
+  s.lineTo(-2.38, 0.52)
+  s.quadraticCurveTo(-2.4, 0.38, -2.3, FLOOR_Y)
   return s
 }
 
-/* Haubenpanel: dünne Schale über dem abgesenkten Haubenbereich */
+/* Haubenpanel (Silber) */
 function hoodShape() {
   const s = new THREE.Shape()
-  s.moveTo(2.28, 0.6)
-  s.quadraticCurveTo(1.55, 0.9, 0.74, 0.94)
-  s.lineTo(0.74, 0.875)
-  s.quadraticCurveTo(1.5, 0.8, 2.18, 0.52)
+  s.moveTo(2.39, 0.96)
+  s.quadraticCurveTo(1.4, 1.035, 0.59, 1.045)
+  s.lineTo(0.59, 0.99)
+  s.quadraticCurveTo(1.4, 0.975, 2.33, 0.91)
   s.closePath()
   return s
 }
 
-/* Heckdeckel */
+/* Heckdeckel (Silber) */
 function trunkShape() {
   const s = new THREE.Shape()
-  s.moveTo(-1.43, 0.935)
-  s.quadraticCurveTo(-1.85, 0.9, -2.07, 0.8)
-  s.lineTo(-2.05, 0.74)
-  s.quadraticCurveTo(-1.8, 0.84, -1.43, 0.875)
+  s.moveTo(-1.66, 1.055)
+  s.quadraticCurveTo(-2.08, 1.005, -2.31, 0.865)
+  s.lineTo(-2.28, 0.8)
+  s.quadraticCurveTo(-2.02, 0.94, -1.66, 0.99)
   s.closePath()
   return s
 }
 
-/* Glaskanzel: Windschutzscheibe → Dach → Heckscheibe (Fastback) */
+/* Glaskanzel: aufrechtere Scheiben, langes formales Dach */
 function canopyShape() {
   const s = new THREE.Shape()
-  s.moveTo(0.6, 0.93)
-  s.quadraticCurveTo(0.28, 1.18, -0.15, 1.23)
-  s.lineTo(-0.7, 1.23)
-  s.quadraticCurveTo(-1.2, 1.16, -1.46, 0.91)
+  s.moveTo(0.44, 1.07)
+  s.quadraticCurveTo(0.2, 1.36, -0.25, 1.42)
+  s.lineTo(-0.95, 1.42)
+  s.quadraticCurveTo(-1.5, 1.34, -1.7, 1.04)
   s.closePath()
   return s
 }
 
-/* Tür-Panel (flach, leicht gewölbt wirkt es durch Bevel) */
+/* Tür-Panel — lang, mit ruhiger Linie */
 function doorShape() {
   const s = new THREE.Shape()
-  s.moveTo(-0.78, 0.36)
-  s.lineTo(0.62, 0.36)
-  s.lineTo(0.6, 0.9)
-  s.lineTo(-0.74, 0.9)
+  s.moveTo(-0.95, 0.4)
+  s.lineTo(0.5, 0.4)
+  s.lineTo(0.47, 1.02)
+  s.lineTo(-0.9, 1.0)
   s.closePath()
   return s
 }
 
+/* Rad: viel Chrom, feine Speichen */
 function buildWheel(mats: ShowcarMaterials, swap: boolean) {
   const g = new THREE.Group()
-  const tire = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.095, 18, 44), mats.tire)
+  const tire = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 18, 44), mats.tire)
   g.add(tire)
   const rimMat = swap ? mats.rimSwap : mats.rim
-  /* Felgenbett (dunkler Zylinder hinter den Speichen) */
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.14, 28), mats.trim)
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.14, 28), mats.trim)
   barrel.rotation.x = Math.PI / 2
   g.add(barrel)
-  /* Bremsscheibe + Sattel */
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.03, 28), mats.disc)
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.03, 28), mats.disc)
   disc.rotation.x = Math.PI / 2
-  disc.position.z = -0.045
+  disc.position.z = -0.05
   g.add(disc)
-  const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.13, 0.05), mats.caliper)
-  caliper.position.set(0.13, 0.04, -0.045)
+  const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.05), mats.caliper)
+  caliper.position.set(0.14, 0.04, -0.05)
   g.add(caliper)
-  /* 5 Doppelspeichen (bleiben innerhalb des Reifens) */
-  for (let i = 0; i < 5; i++) {
-    const a = (i * Math.PI * 2) / 5
-    const pair = new THREE.Group()
-    pair.rotation.z = a
-    for (const off of [-0.024, 0.024]) {
-      const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.04, 0.028), rimMat)
-      spoke.position.set(0.12, off, 0.048)
-      pair.add(spoke)
-    }
-    g.add(pair)
+  /* 10 feine Speichen */
+  for (let i = 0; i < 10; i++) {
+    const a = (i * Math.PI * 2) / 10
+    const arm = new THREE.Group()
+    arm.rotation.z = a
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.026, 0.024), rimMat)
+    spoke.position.set(0.125, 0, 0.05)
+    arm.add(spoke)
+    g.add(arm)
   }
-  /* Felgenhorn + Nabe */
-  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.02, 10, 44), rimMat)
-  lip.position.z = 0.05
+  const lip = new THREE.Mesh(new THREE.TorusGeometry(0.225, 0.02, 10, 44), rimMat)
+  lip.position.z = 0.052
   g.add(lip)
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.04, 16), rimMat)
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.045, 18), rimMat)
   hub.rotation.x = Math.PI / 2
-  hub.position.z = 0.055
+  hub.position.z = 0.058
   g.add(hub)
   return g
 }
@@ -233,23 +254,23 @@ export function buildShowcar(): Showcar {
   const mats = createMaterials()
   const car = new THREE.Group()
 
-  /* Karosserie */
+  /* Karosserie (Graphit-Schwarz) */
   const body = extrudeProfile(bodyShape(), WIDTH - 0.14, mats.paint)
   car.add(body)
 
-  /* Haube (Pivot an der Cowl-Kante, öffnet vorn nach oben) */
+  /* Haube (Silber, Pivot an der Cowl-Kante) */
   const hoodPivot = new THREE.Group()
-  hoodPivot.position.set(0.74, 0.895, 0)
-  const hood = extrudeProfile(hoodShape(), WIDTH - 0.3, mats.paint, { bevelT: 0.03, bevelS: 0.03 })
-  hood.position.set(-0.74, -0.895, 0)
+  hoodPivot.position.set(0.59, 1.0, 0)
+  const hood = extrudeProfile(hoodShape(), WIDTH - 0.3, mats.paintUpper, { bevelT: 0.03, bevelS: 0.03 })
+  hood.position.set(-0.59, -1.0, 0)
   hoodPivot.add(hood)
   car.add(hoodPivot)
 
-  /* Heckdeckel (Pivot an Vorderkante) */
+  /* Heckdeckel (Silber, Pivot an Vorderkante) */
   const trunkPivot = new THREE.Group()
-  trunkPivot.position.set(-1.43, 0.9, 0)
-  const trunk = extrudeProfile(trunkShape(), WIDTH - 0.3, mats.paint, { bevelT: 0.03, bevelS: 0.03 })
-  trunk.position.set(1.43, -0.9, 0)
+  trunkPivot.position.set(-1.66, 1.02, 0)
+  const trunk = extrudeProfile(trunkShape(), WIDTH - 0.3, mats.paintUpper, { bevelT: 0.03, bevelS: 0.03 })
+  trunk.position.set(1.66, -1.02, 0)
   trunkPivot.add(trunk)
   car.add(trunkPivot)
 
@@ -257,82 +278,113 @@ export function buildShowcar(): Showcar {
   const canopy = extrudeProfile(canopyShape(), WIDTH - 0.52, mats.glass, { bevelT: 0.09, bevelS: 0.09 })
   car.add(canopy)
 
-  /* Türen (dünn, außen auf der Flanke) */
+  /* Türen */
+  const doorZ = (WIDTH - 0.14) / 2 + 0.07 - 0.015
   const doorL = new THREE.Group()
-  doorL.position.set(0.62, 0, (WIDTH - 0.14) / 2 + 0.07 - 0.015)
+  doorL.position.set(0.5, 0, doorZ)
   const doorPanelL = extrudeProfile(doorShape(), 0.03, mats.paint, { bevelT: 0.015, bevelS: 0.015, bevelSeg: 2 })
-  doorPanelL.position.set(-0.62, 0, 0)
+  doorPanelL.position.set(-0.5, 0, 0)
   doorL.add(doorPanelL)
-  const handleL = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.025, 0.012), mats.trim)
-  handleL.position.set(-0.32, 0.8, 0.035)
+  const handleL = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.025, 0.012), mats.chrome)
+  handleL.position.set(-0.25, 0.92, 0.035)
   doorL.add(handleL)
   car.add(doorL)
 
   const doorR = new THREE.Group()
-  doorR.position.set(0.62, 0, -((WIDTH - 0.14) / 2 + 0.07 - 0.015))
+  doorR.position.set(0.5, 0, -doorZ)
   const doorPanelR = extrudeProfile(doorShape(), 0.03, mats.paint, { bevelT: 0.015, bevelS: 0.015, bevelSeg: 2 })
-  doorPanelR.position.set(-0.62, 0, 0)
+  doorPanelR.position.set(-0.5, 0, 0)
   doorR.add(doorPanelR)
   const handleR = handleL.clone()
   handleR.position.z = -0.035
   doorR.add(handleR)
   car.add(doorR)
 
-  /* Motorraum + Motor (sichtbar bei offener Haube) */
-  const bay = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.24, 1.3), mats.trim)
-  bay.position.set(1.45, 0.55, 0)
+  /* Rote Coachline entlang der Flanke (Signatur-Detail) */
+  for (const side of [1, -1]) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(3.9, 0.015, 0.008), mats.coachline)
+    line.position.set(0.05, 0.99, side * (WIDTH / 2 + 0.045))
+    car.add(line)
+  }
+
+  /* Motorraum + Motor */
+  const bay = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.26, 1.3), mats.trim)
+  bay.position.set(1.5, 0.6, 0)
   car.add(bay)
-  const engine = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.18, 0.72), mats.engine)
-  engine.position.set(1.45, 0.62, 0)
+  const engine = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.2, 0.74), mats.engine)
+  engine.position.set(1.5, 0.69, 0)
   car.add(engine)
   for (const zz of [-0.2, 0.2]) {
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.025, 0.08), mats.engineGlow)
-    strip.position.set(1.45, 0.72, zz)
+    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.025, 0.08), mats.engineGlow)
+    strip.position.set(1.5, 0.8, zz)
     car.add(strip)
   }
   const engineLight = new THREE.PointLight('#ff5040', 0, 3)
-  engineLight.position.set(1.45, 1.1, 0)
+  engineLight.position.set(1.5, 1.15, 0)
   car.add(engineLight)
 
-  /* Front: Splitter, Grill, LED-Scheinwerfer */
-  const splitter = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, WIDTH - 0.24), mats.trim)
-  splitter.position.set(2.24, 0.28, 0)
-  car.add(splitter)
-  const grille = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.13, 0.8), mats.trim)
-  grille.position.set(2.34, 0.42, 0)
-  car.add(grille)
+  /* ── Front: aufrechter Chrom-Grill mit vertikalen Lamellen ── */
+  const grilleBack = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.84), mats.trim)
+  grilleBack.position.set(2.44, 0.62, 0)
+  car.add(grilleBack)
+  /* Chrom-Rahmen */
+  const frameTop = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.05, 0.92), mats.chrome)
+  frameTop.position.set(2.45, 0.86, 0)
+  car.add(frameTop)
+  const frameBottom = frameTop.clone()
+  frameBottom.position.y = 0.4
+  car.add(frameBottom)
   for (const side of [1, -1]) {
-    const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.4), mats.headlight)
-    led.position.set(2.37, 0.55, side * 0.52)
-    led.rotation.y = side * -0.3
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.51, 0.05), mats.chrome)
+    post.position.set(2.45, 0.63, side * 0.44)
+    car.add(post)
+  }
+  /* Vertikale Lamellen */
+  for (let i = -3; i <= 3; i++) {
+    const slat = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.4, 0.022), mats.chrome)
+    slat.position.set(2.465, 0.625, i * 0.105)
+    car.add(slat)
+  }
+
+  /* Schmale LED-Scheinwerfer neben dem Grill */
+  for (const side of [1, -1]) {
+    const led = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.06, 0.3), mats.headlight)
+    led.position.set(2.49, 0.82, side * 0.68)
     car.add(led)
+    const chromeBrow = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.015, 0.32), mats.chrome)
+    chromeBrow.position.set(2.49, 0.87, side * 0.68)
+    car.add(chromeBrow)
   }
 
-  /* Heck: Lichtleiste, Diffusor, Auspuff */
-  const lightbar = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, WIDTH - 0.42), mats.taillight)
-  lightbar.position.set(-2.21, 0.64, 0)
-  car.add(lightbar)
-  const diffuser = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.09, WIDTH - 0.5), mats.trim)
-  diffuser.position.set(-2.14, 0.32, 0)
-  car.add(diffuser)
-  for (const side of [1, -1]) {
-    const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.12, 18), mats.trim)
-    exhaust.rotation.z = Math.PI / 2
-    exhaust.position.set(-2.2, 0.38, side * 0.62)
-    car.add(exhaust)
-  }
+  /* Frontschürze */
+  const splitter = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, WIDTH - 0.3), mats.trim)
+  splitter.position.set(2.38, 0.3, 0)
+  car.add(splitter)
 
-  /* Schweller */
+  /* ── Heck: vertikale Leuchten, Chrom-Leiste, ruhige Fläche ── */
   for (const side of [1, -1]) {
-    const sill = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.09, 0.1), mats.trim)
-    sill.position.set(0, 0.3, side * (WIDTH / 2 - 0.06))
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.34, 0.09), mats.taillight)
+    tail.position.set(-2.47, 0.66, side * 0.72)
+    car.add(tail)
+  }
+  const chromeTail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.025, 1.1), mats.chrome)
+  chromeTail.position.set(-2.48, 0.8, 0)
+  car.add(chromeTail)
+  const valance = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, WIDTH - 0.5), mats.trim)
+  valance.position.set(-2.34, 0.34, 0)
+  car.add(valance)
+
+  /* Chrom-Schwellerleiste */
+  for (const side of [1, -1]) {
+    const sill = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.035, 0.06), mats.chrome)
+    sill.position.set(0, 0.33, side * (WIDTH / 2 - 0.04))
     car.add(sill)
   }
 
   /* Räder */
   const makeWheel = (wx: number, side: number, swap: boolean) => {
     const w = buildWheel(mats, swap)
-    w.position.set(wx, 0.345, side * (WIDTH / 2 - 0.16))
+    w.position.set(wx, WHEEL_Y, side * WHEEL_Z)
     if (side < 0) w.rotation.y = Math.PI
     car.add(w)
     return w

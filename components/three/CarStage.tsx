@@ -38,10 +38,10 @@ function CameraRig({ progress }: { progress: MotionValue<number> }) {
       )
     }
 
-    /* Hochformat: Kamera weiter weg, damit das Auto ins Bild passt */
+    /* Hochformat: Kamera deutlich weiter weg, damit das Auto ins Bild passt */
     const aspect = state.size.width / state.size.height
     if (aspect < 0.9) {
-      desired.current.sub(desiredTarget.current).multiplyScalar(1.45).add(desiredTarget.current)
+      desired.current.sub(desiredTarget.current).multiplyScalar(1.7).add(desiredTarget.current)
     }
 
     /* Gedämpfte Annäherung — glättet Kapitel-Übergänge */
@@ -65,7 +65,7 @@ export default function CarStage({
     <Canvas
       dpr={high ? [1, 1.75] : [1, 1.4]}
       camera={{ fov: 35, position: [6.2, 2.6, 4.6] }}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', toneMappingExposure: 1.4 }}
       style={{ position: 'absolute', inset: 0 }}
     >
       <ambientLight intensity={0.55} />
@@ -74,8 +74,8 @@ export default function CarStage({
       {/* Prozedurales Studio-Licht — lange Strips spiegeln sich im Lack */}
       <Environment resolution={high ? 256 : 128} frames={1}>
         <Lightformer intensity={6} position={[0, 4, 0]} rotation-x={Math.PI / 2} scale={[9, 2.5, 1]} />
-        <Lightformer intensity={2.4} position={[-6, 1.2, 0]} rotation-y={Math.PI / 2} scale={[7, 1.4, 1]} />
-        <Lightformer intensity={2.4} position={[6, 1.2, 0]} rotation-y={-Math.PI / 2} scale={[7, 1.4, 1]} />
+        <Lightformer intensity={3.2} position={[-6, 1.2, 0]} rotation-y={Math.PI / 2} scale={[7, 1.4, 1]} />
+        <Lightformer intensity={3.2} position={[6, 1.2, 0]} rotation-y={-Math.PI / 2} scale={[7, 1.4, 1]} />
         <Lightformer intensity={1.4} color="#c92a2a" position={[0, 1.4, -7]} scale={[5, 2, 1]} />
         <Lightformer intensity={1.0} color="#ffffff" position={[0, 1.0, 7]} scale={[6, 1, 1]} />
       </Environment>

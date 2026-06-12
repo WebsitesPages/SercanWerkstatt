@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import {
-  motion, useScroll, useTransform, useReducedMotion,
+  motion, useScroll, useTransform, useReducedMotion, animate,
   type MotionValue,
 } from 'framer-motion'
 import { CHAPTERS, N_CHAPTERS } from '@/lib/carStory'
@@ -125,18 +125,21 @@ export default function CarStory() {
   })
 
   /* Scroll-Snap: nach kurzer Ruhe sanft zur Mitte des aktuellen Kapitels ziehen
-     (dort ist die jeweilige Animation auf ihrem Höhepunkt) */
+     (dort ist die jeweilige Animation auf ihrem Höhepunkt). Eigene
+     rAF-Animation statt natives smooth-scrollTo — das ist auf iOS Safari
+     unzuverlässig (Momentum-Scrolling bricht es ab oder es springt). */
   useEffect(() => {
     if (reduced) return
     const el = ref.current
     if (!el) return
     let timer = 0
-    let snapping = false
+    let anim: ReturnType<typeof animate> | null = null
     const cancel = () => {
-      snapping = false
+      anim?.stop()
+      anim = null
     }
     const onScroll = () => {
-      if (snapping) return
+      if (anim) return
       window.clearTimeout(timer)
       timer = window.setTimeout(() => {
         const range = el.offsetHeight - window.innerHeight
@@ -145,10 +148,15 @@ export default function CarStory() {
         const idx = Math.min(N_CHAPTERS - 1, Math.floor(p * N_CHAPTERS))
         const target = Math.round(el.offsetTop + ((idx + 0.5) / N_CHAPTERS) * range)
         if (Math.abs(window.scrollY - target) < 12) return
-        snapping = true
-        window.scrollTo({ top: target, behavior: 'smooth' })
-        window.setTimeout(cancel, 900)
-      }, 220)
+        anim = animate(window.scrollY, target, {
+          duration: 0.6,
+          ease: [0.25, 0.8, 0.4, 1],
+          onUpdate: (v) => window.scrollTo({ top: v, behavior: 'instant' as ScrollBehavior }),
+          onComplete: () => {
+            anim = null
+          },
+        })
+      }, 240)
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('wheel', cancel, { passive: true })
@@ -158,6 +166,7 @@ export default function CarStory() {
       window.removeEventListener('wheel', cancel)
       window.removeEventListener('touchstart', cancel)
       window.clearTimeout(timer)
+      cancel()
     }
   }, [reduced])
 
