@@ -102,7 +102,7 @@ components/
 
 ## 3D-Modell
 
-Das Showcar in der Film-Sektion ist das markenfreie **„CarConcept"**-Modell aus den
-offiziellen [Khronos glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept).
-Modell & Texturen: **Eric Chadwick**, Lizenz **CC BY 4.0**.
-Draco-Decoder liegt lokal unter `public/draco/`, Basis-/KTX2-Transcoder unter `public/basis/`.
+Das Showcar in der Film-Sektion ist ein **komplett prozedural erzeugter GT**
+(`lib/buildShowcar.ts`): extrudierte Kurvenprofile mit echten Radlauf-Ausschnitten,
+einzeln animierbare Teile (Haube, Türen, Heckdeckel, Räder) und ein Lack-Shader für
+die Lack-Welle. Kein Modell-Download, keine fremden Assets, keine Lizenzfragen.
