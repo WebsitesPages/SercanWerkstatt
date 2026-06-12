@@ -124,6 +124,43 @@ export default function CarStory() {
     offset: ['start start', 'end end'],
   })
 
+  /* Scroll-Snap: nach kurzer Ruhe sanft zur Mitte des aktuellen Kapitels ziehen
+     (dort ist die jeweilige Animation auf ihrem Höhepunkt) */
+  useEffect(() => {
+    if (reduced) return
+    const el = ref.current
+    if (!el) return
+    let timer = 0
+    let snapping = false
+    const cancel = () => {
+      snapping = false
+    }
+    const onScroll = () => {
+      if (snapping) return
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const range = el.offsetHeight - window.innerHeight
+        const p = (window.scrollY - el.offsetTop) / range
+        if (p <= 0.02 || p >= 0.98) return
+        const idx = Math.min(N_CHAPTERS - 1, Math.floor(p * N_CHAPTERS))
+        const target = Math.round(el.offsetTop + ((idx + 0.5) / N_CHAPTERS) * range)
+        if (Math.abs(window.scrollY - target) < 12) return
+        snapping = true
+        window.scrollTo({ top: target, behavior: 'smooth' })
+        window.setTimeout(cancel, 900)
+      }, 220)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('wheel', cancel, { passive: true })
+    window.addEventListener('touchstart', cancel, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('wheel', cancel)
+      window.removeEventListener('touchstart', cancel)
+      window.clearTimeout(timer)
+    }
+  }, [reduced])
+
   const hintOpacity = useTransform(scrollYProgress, [0, 0.06], [1, 0])
 
   if (reduced) return <StaticStory />

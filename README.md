@@ -102,6 +102,7 @@ components/
 
 ## 3D-Modell
 
-Das Showcar in der Film-Sektion ist das **Ferrari 458 Italia** glTF-Modell aus den
-offiziellen [three.js-Beispielen](https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf)
-(Autor: vicent091036). Draco-Decoder liegt lokal unter `public/draco/`.
+Das Showcar in der Film-Sektion ist das markenfreie **„CarConcept"**-Modell aus den
+offiziellen [Khronos glTF-Sample-Assets](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept).
+Modell & Texturen: **Eric Chadwick**, Lizenz **CC BY 4.0**.
+Draco-Decoder liegt lokal unter `public/draco/`, Basis-/KTX2-Transcoder unter `public/basis/`.

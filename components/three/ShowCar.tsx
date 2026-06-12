@@ -1,29 +1,30 @@
 'use client'
 
 import { useMemo, useRef } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
+import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import * as THREE from 'three'
 import type { MotionValue } from 'framer-motion'
 import { getChapter, easeInOut, smooth } from '@/lib/carStory'
 
-/* Ferrari 458 Italia — Modell aus den offiziellen three.js-Beispielen.
-   Autor: vicent091036, bereitgestellt über das three.js-Repository.
-   Draco-komprimiert; Decoder liegt lokal unter /public/draco. */
-const MODEL_URL = '/SercanWerkstatt/models/ferrari.glb'
+/* „CarConcept" — markenfreies Konzeptauto aus den offiziellen Khronos
+   glTF-Sample-Assets. Modell & Texturen: Eric Chadwick, Lizenz CC BY 4.0.
+   https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/CarConcept */
+const MODEL_URL = '/SercanWerkstatt/models/carconcept/CarConcept.gltf'
 const DRACO_PATH = '/SercanWerkstatt/draco/'
+const BASIS_PATH = '/SercanWerkstatt/basis/'
 
-/* Sofort beim Laden des Chunks anstoßen — Punkt 1: kein spätes Einladen */
-useGLTF.preload(MODEL_URL, DRACO_PATH)
+/* Modell-Koordinaten: Länge = z (Front +z), Breite = x (links +x), Boden y=-0.16.
+   Wrapper dreht +90° um y → Front zeigt +x (Welt), Kamera-Seite +z = rechte Fahrzeugseite. */
+const HOOD_OPEN = 0.62
+const DOOR_OPEN = 0.92
+const HATCH_OPEN = 0.8
+const WHEEL_EXPLODE = 0.55
 
-/* ── Lack-Material mit Welle (uPrimerMix, uEdge) ───────── */
-function createPaintMaterial() {
-  const uniforms = { uPrimerMix: { value: 0 }, uEdge: { value: 4 } }
-  const mat = new THREE.MeshPhysicalMaterial({
-    color: '#c4060d', metalness: 0.9, roughness: 0.28,
-    clearcoat: 1, clearcoatRoughness: 0.1,
-    transparent: true, opacity: 1,
-  })
+/* Lack-Welle: Patch auf die geladenen Paint-Materialien (behält Flake-Texturen) */
+function patchPaintMaterial(mat: THREE.Material, uniforms: { uPrimerMix: { value: number }; uEdge: { value: number } }) {
   mat.onBeforeCompile = (shader) => {
     shader.uniforms.uPrimerMix = uniforms.uPrimerMix
     shader.uniforms.uEdge = uniforms.uEdge
@@ -50,90 +51,91 @@ function createPaintMaterial() {
         ].join('\n')
       )
   }
-  return { mat, uniforms }
+  mat.needsUpdate = true
 }
 
-const engineGlowMat = new THREE.MeshStandardMaterial({
-  color: '#1a0505', emissive: '#ff3b30', emissiveIntensity: 0,
-})
 const rimFreshColor = new THREE.Color('#f2f3f5')
+const SPIN_AXIS = new THREE.Vector3(1, 0, 0)
 
-/* ── Showcar: Ferrari 458, scroll-animiert ─────────────── */
 export default function ShowCar({ progress }: { progress: MotionValue<number> }) {
-  const { scene } = useGLTF(MODEL_URL, DRACO_PATH)
+  const gl = useThree((s) => s.gl)
+  const { scene } = useGLTF(MODEL_URL, DRACO_PATH, false, (loader) => {
+    const ktx2 = new KTX2Loader().setTranscoderPath(BASIS_PATH).detectSupport(gl)
+    ;(loader as GLTFLoader).setKTX2Loader(ktx2)
+  })
   const engineLight = useRef<THREE.PointLight>(null)
-  const engineMesh = useRef<THREE.Mesh>(null)
 
-  const { mat: paintMat, uniforms } = useMemo(createPaintMaterial, [])
-
-  /* Welt-Clip-Ebene: hält nur x <= constant (Scan-Rebuild in Kapitel 1) */
-  const clipPlane = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), 6), [])
+  const uniforms = useMemo(() => ({ uPrimerMix: { value: 0 }, uEdge: { value: 4 } }), [])
+  const spinQuat = useMemo(() => new THREE.Quaternion(), [])
 
   const parts = useMemo(() => {
-    /* Karosserie bekommt unser Lack-Material */
-    const body = scene.getObjectByName('body') as THREE.Mesh | undefined
-    if (body) body.material = paintMat
+    const get = (n: string) => scene.getObjectByName(n) as THREE.Object3D | undefined
 
-    /* Felge vorn rechts (Kamera-Seite) bekommt eigenes Material für den Wechsel */
-    const rimFr = scene.getObjectByName('rim_fr') as THREE.Mesh | undefined
+    /* Lack-Materialien patchen (einmalig) */
+    const patched = new Set<THREE.Material>()
+    scene.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (!mesh.isMesh) return
+      const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+      for (const m of list) {
+        if (/^Paint/.test(m.name) && !patched.has(m)) {
+          patchPaintMaterial(m, uniforms)
+          patched.add(m)
+        }
+      }
+    })
+
+    /* Wechselrad (vorn rechts = Kamera-Seite) bekommt eigenes Felgen-Material */
+    const swapWheel = get('WheelFrontR')
+    const swapRim = get('WheelFrontRRim') as THREE.Mesh | undefined
     let rimMat: THREE.MeshStandardMaterial | null = null
     let rimBase: THREE.Color | null = null
-    if (rimFr && (rimFr.material as THREE.Material).hasOwnProperty('color')) {
-      rimMat = (rimFr.material as THREE.MeshStandardMaterial).clone()
+    if (swapRim && !Array.isArray(swapRim.material)) {
+      rimMat = (swapRim.material as THREE.MeshStandardMaterial).clone()
       rimMat.emissive = new THREE.Color('#ff2a2a')
       rimMat.emissiveIntensity = 0
-      rimFr.material = rimMat
+      swapRim.material = rimMat
       rimBase = rimMat.color.clone()
     }
 
-    /* Clip-Ebene auf alle Modell-Materialien */
-    const mats = new Set<THREE.Material>()
-    scene.traverse((o) => {
-      const mesh = o as THREE.Mesh
-      if (mesh.isMesh) {
-        const list = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-        list.forEach((m) => mats.add(m))
-      }
-    })
-    mats.add(paintMat)
-    mats.forEach((m) => {
-      m.clippingPlanes = [clipPlane]
-    })
+    const wheels = [
+      { node: get('WheelFrontL'), out: 1 },
+      { node: get('WheelFrontR'), out: -1 },
+      { node: get('WheelRearL'), out: 1 },
+      { node: get('WheelRearR'), out: -1 },
+    ].filter((w) => w.node) as { node: THREE.Object3D; out: number }[]
 
-    /* Wechsel-Rad: vorn rechts = Kamera-Seite (+z Welt) */
-    const wheel = scene.getObjectByName('wheel_fr') as THREE.Group | undefined
     return {
-      wheel,
-      wheelBase: wheel ? wheel.position.clone() : new THREE.Vector3(),
-      wheelBaseRotX: wheel ? wheel.rotation.x : 0,
+      hood: get('BodyHood'),
+      doorL: get('BodyDoorLColor1'),
+      doorR: get('BodyDoorRColor1'),
+      hatch: get('BodyRearPanelsColor1'),
+      wheels,
+      wheelBases: wheels.map((w) => w.node.position.clone()),
+      swapWheel,
+      swapBaseQuat: swapWheel ? swapWheel.quaternion.clone() : null,
       rimMat,
       rimBase,
     }
-  }, [scene, paintMat, clipPlane])
-
-  const outDir = useRef<THREE.Vector3 | null>(null)
-  const tmpMatrix = useMemo(() => new THREE.Matrix4(), [])
+  }, [scene, uniforms])
 
   useFrame(() => {
     const { index, t } = getChapter(progress.get())
 
-    /* Kapitel 1 — Scan-Rebuild: Clip-Ebene fährt durchs Auto und zurück.
-       Minimum -0.5 lässt immer die hintere Hälfte stehen (Auto-Spanne ±2.3) */
-    let c = 6
-    if (index === 1) {
-      const sweep = Math.sin(Math.PI * easeInOut(t))
-      c = 2.8 - sweep * 3.3
-    }
-    clipPlane.constant = c
+    /* Kapitel 1 — Explosionsansicht: alles öffnet, Räder fahren raus */
+    const ex = index === 1 ? Math.sin(Math.PI * easeInOut(t)) : 0
 
-    /* Kapitel 2 — Röntgenblick: Karosserie wird gläsern, Motor glüht (Heckmotor!) */
-    const xray = index === 2 ? smooth(0.08, 0.4, t) * (1 - smooth(0.85, 1, t)) : 0
-    paintMat.opacity = 1 - xray * 0.78
-    engineGlowMat.emissiveIntensity = xray * 4
-    if (engineLight.current) engineLight.current.intensity = xray * 4
-    if (engineMesh.current) engineMesh.current.visible = xray > 0.01
+    /* Kapitel 2 — Motorhaube öffnet wirklich, Motor glüht */
+    const service = index === 2 ? smooth(0.08, 0.45, t) * (1 - smooth(0.85, 1, t)) : 0
+    const hoodOpen = Math.max(ex, service)
 
-    /* Kapitel 3 — Radwechsel vorn rechts: raus, drehen, neue Felge, rein */
+    if (parts.hood) parts.hood.rotation.x = hoodOpen * HOOD_OPEN
+    if (parts.doorL) parts.doorL.rotation.y = ex * DOOR_OPEN
+    if (parts.doorR) parts.doorR.rotation.y = -ex * DOOR_OPEN
+    if (parts.hatch) parts.hatch.rotation.x = -ex * HATCH_OPEN
+    if (engineLight.current) engineLight.current.intensity = service * 4
+
+    /* Kapitel 3 — Radwechsel vorn rechts: raus zur Kamera, drehen, neue Felge */
     let out = 0
     let fresh = 0
     if (index === 3) {
@@ -142,21 +144,20 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
     } else if (index > 3) {
       fresh = 1
     }
-    if (parts.wheel) {
-      /* Ausbau-Richtung = Welt +z (Kamera-Seite), in Eltern-Koordinaten umgerechnet */
-      if (!outDir.current && parts.wheel.parent) {
-        parts.wheel.parent.updateWorldMatrix(true, false)
-        outDir.current = new THREE.Vector3(0, 0, 1)
-          .transformDirection(tmpMatrix.copy(parts.wheel.parent.matrixWorld).invert())
-          .normalize()
+
+    parts.wheels.forEach((w, i) => {
+      const base = parts.wheelBases[i]
+      let dx = w.out * ex * WHEEL_EXPLODE
+      let dy = 0
+      if (w.node === parts.swapWheel) {
+        dx += -out * 0.95
+        dy = out * 0.3
       }
-      if (outDir.current) {
-        parts.wheel.position
-          .copy(parts.wheelBase)
-          .addScaledVector(outDir.current, out * 0.9)
-        parts.wheel.position.y += out * 0.25
-      }
-      parts.wheel.rotation.x = parts.wheelBaseRotX - out * 16
+      w.node.position.set(base.x + dx, base.y + dy, base.z)
+    })
+    if (parts.swapWheel && parts.swapBaseQuat) {
+      spinQuat.setFromAxisAngle(SPIN_AXIS, -out * 14)
+      parts.swapWheel.quaternion.copy(parts.swapBaseQuat).premultiply(spinQuat)
     }
     if (parts.rimMat && parts.rimBase) {
       parts.rimMat.color.lerpColors(parts.rimBase, rimFreshColor, fresh)
@@ -175,15 +176,11 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
   })
 
   return (
-    /* Modell: Länge entlang z, Front -z → um -90° drehen, Front zeigt +x */
-    <group rotation-y={-Math.PI / 2}>
+    /* Front (+z im Modell) zeigt nach der Drehung nach +x; Auto auf den Boden heben */
+    <group rotation-y={Math.PI / 2} position-y={0.16}>
       <primitive object={scene} />
-
-      {/* Glühender Motorblock im Heck (Mittelmotor), sichtbar im Röntgen-Kapitel */}
-      <mesh ref={engineMesh} material={engineGlowMat} position={[0, 0.62, 1.35]} visible={false}>
-        <boxGeometry args={[0.85, 0.35, 0.7]} />
-      </mesh>
-      <pointLight ref={engineLight} position={[0, 1.0, 1.35]} color="#ff5040" intensity={0} distance={3.5} />
+      {/* Motor-Glow unter der Haube (Frontmotor bei z≈1.9 im Modell) */}
+      <pointLight ref={engineLight} position={[0, 0.75, 1.9]} color="#ff5040" intensity={0} distance={3.5} />
     </group>
   )
 }
