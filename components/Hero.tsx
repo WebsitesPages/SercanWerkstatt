@@ -140,27 +140,77 @@ export default function Hero() {
                       </text>
                     ))}
                   </clipPath>
+                  {/* Lackier-Wipe: füllt die Konturen von links nach rechts */}
+                  <clipPath id="inalPaintWipe">
+                    <motion.rect
+                      x={-310}
+                      y={-95}
+                      height={190}
+                      initial={{ width: 0 }}
+                      animate={{ width: 640 }}
+                      transition={{ delay: 0.75, duration: 0.95, ease: [0.4, 0, 0.2, 1] }}
+                    />
+                  </clipPath>
                 </defs>
 
                 <g ref={logoGroupRef}>
-                  {/* Buchstaben: gestaffelter Aufstieg */}
+                  {/* 1. Kontur-Anriss: Buchstaben als feine Linien, wie vorm Lackieren */}
                   {LETTERS.map((l, i) => (
                     <motion.text
-                      key={l.c}
+                      key={`outline-${l.c}`}
                       x={l.x}
+                      y={BASELINE}
                       textAnchor="middle"
                       fontSize="150"
-                      fill="url(#inalChrome)"
+                      fill="none"
+                      stroke="#84878c"
+                      strokeWidth="1.3"
                       style={LETTER_STYLE}
-                      initial={{ opacity: 0, y: BASELINE + 130 }}
-                      animate={{ opacity: 1, y: BASELINE }}
-                      transition={{ duration: 0.85, delay: 0.25 + i * 0.1, ease }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.9, 0.9, 0] }}
+                      transition={{
+                        duration: 1.7, delay: 0.15 + i * 0.09,
+                        times: [0, 0.3, 0.6, 1], ease: 'easeOut',
+                      }}
                     >
                       {l.c}
                     </motion.text>
                   ))}
 
-                  {/* Glanz-Sweep wie Licht über Autolack */}
+                  {/* 2. Lackierung: Chrom-Füllung zieht von links nach rechts durch */}
+                  <g clipPath="url(#inalPaintWipe)">
+                    {LETTERS.map((l) => (
+                      <text
+                        key={`fill-${l.c}`}
+                        x={l.x}
+                        y={BASELINE}
+                        textAnchor="middle"
+                        fontSize="150"
+                        fill="url(#inalChrome)"
+                        style={LETTER_STYLE}
+                      >
+                        {l.c}
+                      </text>
+                    ))}
+                  </g>
+
+                  {/* Glanzlicht an der frischen Lack-Kante */}
+                  <g clipPath="url(#inalClip)">
+                    <motion.rect
+                      y={-95}
+                      width={46}
+                      height={190}
+                      fill="url(#inalSweep)"
+                      initial={{ x: -330, opacity: 1 }}
+                      animate={{ x: 320, opacity: 0 }}
+                      transition={{
+                        x: { delay: 0.75, duration: 0.95, ease: [0.4, 0, 0.2, 1] },
+                        opacity: { delay: 1.7, duration: 0.25 },
+                      }}
+                    />
+                  </g>
+
+                  {/* 3. Wiederkehrender Glanz-Sweep wie Licht über Autolack */}
                   <g clipPath="url(#inalClip)">
                     <motion.rect
                       y={-95}
@@ -171,7 +221,7 @@ export default function Hero() {
                       initial={{ x: -430 }}
                       animate={{ x: 430 }}
                       transition={{
-                        delay: 1.5, duration: 1.1, ease: 'easeInOut',
+                        delay: 2.2, duration: 1.1, ease: 'easeInOut',
                         repeat: Infinity, repeatDelay: 4.5,
                       }}
                     />
@@ -191,7 +241,7 @@ export default function Hero() {
               className="h-[2px] w-full mb-5 bg-gradient-to-r from-transparent via-accent-red to-transparent origin-center"
               initial={{ scaleX: 0, opacity: 0 }}
               animate={{ scaleX: 1, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.6, ease }}
+              transition={{ duration: 0.8, delay: 1.05, ease }}
               style={{ maxWidth: '50%' }}
             />
 
@@ -200,7 +250,7 @@ export default function Hero() {
               className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase leading-relaxed mb-3"
               initial={{ opacity: 0, y: 12, letterSpacing: '0.5em' }}
               animate={{ opacity: 1, y: 0, letterSpacing: '0.18em' }}
-              transition={{ duration: 1.1, delay: 0.8, ease }}
+              transition={{ duration: 1.1, delay: 1.2, ease }}
             >
               Unfallinstandsetzung + Fahrzeuglackierung
             </motion.p>
@@ -210,7 +260,7 @@ export default function Hero() {
               className="font-body text-sm sm:text-base text-carbon-400 mb-10 max-w-lg mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.9, ease }}
+              transition={{ duration: 0.7, delay: 1.35, ease }}
             >
               Ihr Experte für Karosserie &amp; Lack in München — Präzision,
               Qualität und persönlicher Anspruch.
@@ -221,7 +271,7 @@ export default function Hero() {
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 1.1, ease }}
+              transition={{ duration: 0.7, delay: 1.5, ease }}
             >
               <MagneticButton
                 href={`tel:${COMPANY.phone}`}
