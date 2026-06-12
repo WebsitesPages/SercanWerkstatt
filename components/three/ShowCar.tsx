@@ -84,18 +84,22 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
       }
     })
 
-    /* Wechselrad (vorn rechts = Kamera-Seite) bekommt eigenes Felgen-Material */
+    /* Wechselrad (vorn rechts = Kamera-Seite) bekommt eigenes Felgen-Material.
+       Der Rim-Node kann je nach Primitive-Anzahl Mesh oder Group sein → traverse. */
     const swapWheel = get('WheelFrontR')
-    const swapRim = get('WheelFrontRRim') as THREE.Mesh | undefined
     let rimMat: THREE.MeshStandardMaterial | null = null
     let rimBase: THREE.Color | null = null
-    if (swapRim && !Array.isArray(swapRim.material)) {
-      rimMat = (swapRim.material as THREE.MeshStandardMaterial).clone()
+    get('WheelFrontRRim')?.traverse((o) => {
+      const mesh = o as THREE.Mesh
+      if (rimMat || !mesh.isMesh || Array.isArray(mesh.material)) return
+      const src = mesh.material as THREE.MeshStandardMaterial
+      if (!src || !src.color) return
+      rimMat = src.clone()
       rimMat.emissive = new THREE.Color('#ff2a2a')
       rimMat.emissiveIntensity = 0
-      swapRim.material = rimMat
+      mesh.material = rimMat
       rimBase = rimMat.color.clone()
-    }
+    })
 
     const wheels = [
       { node: get('WheelFrontL'), out: 1 },
@@ -113,8 +117,8 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
       wheelBases: wheels.map((w) => w.node.position.clone()),
       swapWheel,
       swapBaseQuat: swapWheel ? swapWheel.quaternion.clone() : null,
-      rimMat,
-      rimBase,
+      rimMat: rimMat as THREE.MeshStandardMaterial | null,
+      rimBase: rimBase as THREE.Color | null,
     }
   }, [scene, uniforms])
 
