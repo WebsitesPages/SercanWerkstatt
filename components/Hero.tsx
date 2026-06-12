@@ -1,24 +1,56 @@
 'use client'
 import { useRef } from 'react'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import {
+  motion, useScroll, useTransform, useMotionValueEvent, useReducedMotion,
+} from 'framer-motion'
 import MagneticButton from './ui/MagneticButton'
 import { COMPANY } from '@/lib/constants'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
+/* Logo-Buchstaben als SVG-Vektoren — bleiben beim Zoom gestochen scharf.
+   Positionen manuell auf die Antonio-Glyphen abgestimmt. */
+const LETTERS = [
+  { c: 'I', x: -157 },
+  { c: 'N', x: -63 },
+  { c: 'A', x: 39 },
+  { c: 'L', x: 137 },
+]
+const BASELINE = 64
+const LETTER_STYLE = { fontFamily: 'var(--font-antonio), sans-serif', fontWeight: 700 } as const
+
 export default function Hero() {
   const wrapperRef = useRef(null)
+  const logoGroupRef = useRef<SVGGElement | null>(null)
+  const reduced = useReducedMotion()
 
-  /* Scroll progress across the tall wrapper (250vh) */
+  /* Scroll progress across the tall wrapper */
   const { scrollYProgress } = useScroll({
     target: wrapperRef,
     offset: ['start start', 'end start'],
   })
 
-  /* ── INAL zoom effect ────────────────────────────── */
-  /* Stays normal for the first ~20%, then scales up massively */
+  /* ── INAL-Vektor-Zoom ────────────────────────────── */
+  /* Die Kamera taucht zwischen N und A durch den Schriftzug. Der Zoom läuft
+     als SVG-Attribut-Transform: Vektoren werden pro Frame neu gezeichnet
+     und bleiben — anders als CSS-Scale auf Text — immer scharf. */
   const inalScale = useTransform(scrollYProgress, [0, 0.15, 0.7], [1, 1, 18])
   const inalOpacity = useTransform(scrollYProgress, [0, 0.15, 0.55, 0.7], [1, 1, 0.6, 0])
+
+  useMotionValueEvent(inalScale, 'change', (s) => {
+    const g = logoGroupRef.current
+    if (!g) return
+    /* Skalierung um den Punkt zwischen N und A (cx/cy), leicht über Mitte */
+    const cx = -12
+    const cy = 8
+    g.setAttribute(
+      'transform',
+      `translate(${(cx * (1 - s)).toFixed(2)} ${(cy * (1 - s)).toFixed(2)}) scale(${s.toFixed(4)})`
+    )
+  })
+
+  /* Letterbox-Balken fahren während des Zooms rein (Kino-Vorhang) */
+  const barHeight = useTransform(scrollYProgress, [0.18, 0.55], ['0%', '13%'])
 
   /* Subtitle, buttons etc. fade out earlier */
   const contentOpacity = useTransform(scrollYProgress, [0, 0.1, 0.35], [1, 1, 0])
@@ -64,20 +96,90 @@ export default function Hero() {
 
         {/* ── All content in one vertical flow ──── */}
         <div className="relative z-10 text-center px-5 max-w-4xl mx-auto flex flex-col items-center">
-          {/* INAL – zooms on scroll */}
-          <motion.div
-            className="gpu"
-            style={{ scale: inalScale, opacity: inalOpacity }}
-          >
-            <motion.h1
+          {/* INAL — Chrom-Logo, Buchstaben steigen einzeln auf, Glanz-Sweep,
+              scharfer Vektor-Zoom beim Scrollen */}
+          <h1 className="sr-only">Inal — Unfallinstandsetzung + Fahrzeuglackierung München</h1>
+          {reduced ? (
+            <div
               className="font-display text-[4rem] sm:text-7xl md:text-8xl lg:text-[7.5rem] text-carbon-50 uppercase tracking-[0.08em] leading-none select-none"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.9, delay: 0.2, ease }}
+              aria-hidden
             >
               Inal
-            </motion.h1>
-          </motion.div>
+            </div>
+          ) : (
+            <motion.div style={{ opacity: inalOpacity }} className="select-none" aria-hidden>
+              <svg
+                viewBox="-300 -95 600 190"
+                overflow="visible"
+                className="w-[min(86vw,620px)] h-auto"
+              >
+                <defs>
+                  <linearGradient id="inalChrome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#f6f6f7" />
+                    <stop offset="0.42" stopColor="#cbcdd1" />
+                    <stop offset="0.52" stopColor="#86888d" />
+                    <stop offset="0.72" stopColor="#e9eaec" />
+                    <stop offset="1" stopColor="#94969b" />
+                  </linearGradient>
+                  <linearGradient id="inalSweep" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stopColor="#fff" stopOpacity="0" />
+                    <stop offset="0.5" stopColor="#fff" stopOpacity="0.8" />
+                    <stop offset="1" stopColor="#fff" stopOpacity="0" />
+                  </linearGradient>
+                  <clipPath id="inalClip">
+                    {LETTERS.map((l) => (
+                      <text
+                        key={l.c}
+                        x={l.x}
+                        y={BASELINE}
+                        textAnchor="middle"
+                        fontSize="150"
+                        style={LETTER_STYLE}
+                      >
+                        {l.c}
+                      </text>
+                    ))}
+                  </clipPath>
+                </defs>
+
+                <g ref={logoGroupRef}>
+                  {/* Buchstaben: gestaffelter Aufstieg */}
+                  {LETTERS.map((l, i) => (
+                    <motion.text
+                      key={l.c}
+                      x={l.x}
+                      textAnchor="middle"
+                      fontSize="150"
+                      fill="url(#inalChrome)"
+                      style={LETTER_STYLE}
+                      initial={{ opacity: 0, y: BASELINE + 130 }}
+                      animate={{ opacity: 1, y: BASELINE }}
+                      transition={{ duration: 0.85, delay: 0.25 + i * 0.1, ease }}
+                    >
+                      {l.c}
+                    </motion.text>
+                  ))}
+
+                  {/* Glanz-Sweep wie Licht über Autolack */}
+                  <g clipPath="url(#inalClip)">
+                    <motion.rect
+                      y={-95}
+                      width={150}
+                      height={190}
+                      fill="url(#inalSweep)"
+                      transform="skewX(-18)"
+                      initial={{ x: -430 }}
+                      animate={{ x: 430 }}
+                      transition={{
+                        delay: 1.5, duration: 1.1, ease: 'easeInOut',
+                        repeat: Infinity, repeatDelay: 4.5,
+                      }}
+                    />
+                  </g>
+                </g>
+              </svg>
+            </motion.div>
+          )}
 
           {/* Rest of content – fades out earlier on scroll */}
           <motion.div
@@ -95,10 +197,10 @@ export default function Hero() {
 
             {/* Tagline */}
             <motion.p
-              className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase tracking-[0.18em] leading-relaxed mb-3"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.7, ease }}
+              className="font-display text-sm sm:text-base md:text-lg text-carbon-300 uppercase leading-relaxed mb-3"
+              initial={{ opacity: 0, y: 12, letterSpacing: '0.5em' }}
+              animate={{ opacity: 1, y: 0, letterSpacing: '0.18em' }}
+              transition={{ duration: 1.1, delay: 0.8, ease }}
             >
               Unfallinstandsetzung + Fahrzeuglackierung
             </motion.p>
@@ -160,6 +262,16 @@ export default function Hero() {
             style={{ originY: 0 }}
           />
         </motion.div>
+
+        {/* ── Letterbox-Vorhang während des Logo-Zooms ── */}
+        <motion.div
+          className="absolute top-0 inset-x-0 bg-carbon-950 z-20 pointer-events-none"
+          style={{ height: barHeight }}
+        />
+        <motion.div
+          className="absolute bottom-0 inset-x-0 bg-carbon-950 z-20 pointer-events-none"
+          style={{ height: barHeight }}
+        />
 
         {/* ── Bottom fade ──────────────────────────── */}
         <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-carbon-950 to-transparent pointer-events-none" />
