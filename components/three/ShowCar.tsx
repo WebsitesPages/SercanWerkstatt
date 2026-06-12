@@ -3,8 +3,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
-import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js'
-import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { KTX2Loader } from 'three-stdlib'
 import * as THREE from 'three'
 import type { MotionValue } from 'framer-motion'
 import { getChapter, easeInOut, smooth } from '@/lib/carStory'
@@ -61,7 +60,7 @@ export default function ShowCar({ progress }: { progress: MotionValue<number> })
   const gl = useThree((s) => s.gl)
   const { scene } = useGLTF(MODEL_URL, DRACO_PATH, false, (loader) => {
     const ktx2 = new KTX2Loader().setTranscoderPath(BASIS_PATH).detectSupport(gl)
-    ;(loader as GLTFLoader).setKTX2Loader(ktx2)
+    loader.setKTX2Loader(ktx2)
   })
   const engineLight = useRef<THREE.PointLight>(null)
 
