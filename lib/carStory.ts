@@ -1,12 +1,32 @@
-/* Kapitel-Daten + Scroll-Mathematik für den Werkstatt-Film */
+/* Kapitel-Daten, Bildpfade und Scroll-Mathematik für den Werkstatt-Film.
+   Kein React — reine Daten und Funktionen. */
+
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '/SercanWerkstatt'
+const img = (name: string) => `${BASE}/images/story/${name}.jpg`
 
 export const N_CHAPTERS = 5
+
+/* Kamera-Keyframe: Zoom-Verlauf und der Punkt, auf den zugefahren wird.
+   `origin` ist ein CSS-transform-origin — dorthin „fährt" die Kamera. */
+export interface CamKeyframe {
+  from: number
+  to: number
+  origin: string
+}
 
 export interface Chapter {
   id: string
   kicker: string
   title: string
   lines: string[]
+  /* Bild ohne Endung/Größe — `-sm` ist die Mobil-Variante */
+  image: string
+  alt: string
+  /* Vertikale Ausrichtung des Bildausschnitts, 0 = oben, 1 = unten */
+  focusY: number
+  cam: CamKeyframe
+  /* Zweites Bild für den Vorher/Nachher-Wipe */
+  wipeTo?: { image: string; alt: string }
 }
 
 export const CHAPTERS: Chapter[] = [
@@ -15,6 +35,10 @@ export const CHAPTERS: Chapter[] = [
     kicker: 'Inal — Karosserie & Lack · München',
     title: 'Ihr Auto.\nUnsere Bühne.',
     lines: ['Scrollen Sie — wir zeigen Ihnen, was wir können.'],
+    image: 'intro',
+    alt: 'Audi e-tron GT im Seitenprofil, aufbereitet in unserem Studio',
+    focusY: 0.58,
+    cam: { from: 1.02, to: 1.1, origin: '50% 58%' },
   },
   {
     id: 'unfall',
@@ -25,6 +49,14 @@ export const CHAPTERS: Chapter[] = [
       'Präzise Vermessung & Richtarbeit',
       'Komplette Versicherungsabwicklung',
     ],
+    image: 'unfall-vorher',
+    alt: 'BMW 5er mit schwerem Unfallschaden an der Fahrerseite, vor der Instandsetzung',
+    focusY: 0.6,
+    cam: { from: 1.0, to: 1.06, origin: '45% 62%' },
+    wipeTo: {
+      image: 'unfall-nachher',
+      alt: 'Derselbe BMW 5er nach der Instandsetzung, Karosserie und Lack wiederhergestellt',
+    },
   },
   {
     id: 'wartung',
@@ -35,6 +67,10 @@ export const CHAPTERS: Chapter[] = [
       'Moderne Diagnosetechnik',
       'Öl, Bremsen, Verschleißteile',
     ],
+    image: 'wartung',
+    alt: 'Audi e-tron GT, Ansicht auf Front und Vorderrad',
+    focusY: 0.6,
+    cam: { from: 1.05, to: 1.32, origin: '30% 66%' },
   },
   {
     id: 'reifen',
@@ -44,14 +80,30 @@ export const CHAPTERS: Chapter[] = [
       'Felgenaufbereitung — vom Bordsteinschaden bis zur Komplettlackierung',
       'Reifenservice & Achsvermessung',
     ],
+    image: 'felgen',
+    alt: 'BMW M4 Competition mit aufbereiteten Bronze-Felgen',
+    focusY: 0.62,
+    cam: { from: 1.1, to: 1.65, origin: '52% 74%' },
   },
   {
     id: 'lack',
     kicker: 'Kapitel 04 — Fahrzeuglackierung',
     title: 'Lack wie am\nersten Tag.',
     lines: ['Original-Farbton, perfektes Finish', 'Glanz, der bleibt'],
+    image: 'lack',
+    alt: 'Audi e-tron GT mit frisch aufbereitetem, spiegelndem schwarzem Lack',
+    focusY: 0.6,
+    cam: { from: 1.15, to: 1.4, origin: '62% 60%' },
   },
 ]
+
+/* Breite der Zoom-through-Überblendung, als Anteil eines Kapitels */
+export const CROSSFADE = 0.09
+
+/* Bildquellen für <picture>: Desktop und Mobil */
+export function sources(name: string) {
+  return { full: img(name), small: img(`${name}-sm`) }
+}
 
 export function clamp01(x: number): number {
   return Math.min(1, Math.max(0, x))
@@ -74,19 +126,28 @@ export function getChapter(p: number): { index: number; t: number } {
   return { index, t: clamp01(x - index) }
 }
 
-/* Kamera-Keyframes für Kapitel 1–4 (Kapitel 0 = Orbit, im Rig berechnet).
-   Auto zeigt nach +X, Breite = Z, Ursprung = Bodenmitte. */
-export interface CamKeyframe {
-  from: [number, number, number]
-  to: [number, number, number]
-  tFrom: [number, number, number]
-  tTo: [number, number, number]
-}
+/* Sichtbarkeit und Zoom einer Kapitel-Ebene beim aktuellen Progress.
+   An den Kapitelgrenzen überlagern sich zwei Ebenen: die alte zoomt weiter
+   heran und blendet aus, die neue kommt leicht zurückgesetzt herein — das
+   liest sich als Kamera-Schnitt, nicht als Diashow. */
+export function frameState(i: number, index: number, t: number) {
+  let opacity = 0
+  let nudge = 0
 
-export const CAM: (CamKeyframe | null)[] = [
-  null,
-  { from: [-4.8, 4.0, 7.6], to: [4.8, 3.4, 6.8], tFrom: [0, 1.0, 0], tTo: [0, 0.9, 0] },
-  { from: [6.1, 2.4, 4.4], to: [4.2, 2.1, 2.3], tFrom: [0.9, 0.95, 0], tTo: [1.6, 0.75, 0] },
-  { from: [4.0, 1.8, 6.0], to: [3.4, 1.25, 4.8], tFrom: [1.55, 0.5, 0.9], tTo: [1.55, 0.55, 0.9] },
-  { from: [1.2, 2.0, 8.0], to: [-6.4, 2.8, 5.8], tFrom: [0, 0.85, 0], tTo: [0, 0.85, 0] },
-]
+  if (i === index) {
+    opacity = 1
+    if (t > 1 - CROSSFADE && i < N_CHAPTERS - 1) {
+      opacity = 1 - smooth(1 - CROSSFADE, 1, t)
+      nudge = (1 - opacity) * 0.1
+    }
+  } else if (i === index + 1 && t > 1 - CROSSFADE) {
+    opacity = smooth(1 - CROSSFADE, 1, t)
+    nudge = -(1 - opacity) * 0.08
+  }
+
+  const local = i === index ? t : i === index + 1 ? 0 : 1
+  const cam = CHAPTERS[i].cam
+  const scale = cam.from + (cam.to - cam.from) * easeInOut(local) + nudge
+
+  return { opacity, scale }
+}
