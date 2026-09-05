@@ -1,7 +1,11 @@
 # Cinematic 3D Redesign — „Der Werkstatt-Film"
 
 **Datum:** 2026-06-11
-**Status:** Approved (User: „tob dich aus ich will was richtig krasses sehen")
+**Status:** Überholt am 2026-09-05 — ersetzt durch
+`2026-09-05-foto-scroll-story-design.md`. Das prozedurale 3D-Auto wirkte nicht
+fotoreal; die Sektion nutzt jetzt echte Studio-Fotos. Historisches Dokument.
+
+**Ursprünglicher Status:** Approved (User: „tob dich aus ich will was richtig krasses sehen")
 
 ## Ziel
 
